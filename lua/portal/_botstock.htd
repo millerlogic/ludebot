@@ -1,0 +1,318 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<lua><!--
+-- Copyright 2012-2014 Christopher E. Miller
+-- License: GPLv3, see LICENSE file.
+
+local q
+local TimeBase = 1332000000 -- 2012-03-17 12:00:00
+
+function init(user, vuri, qs, acct)
+    q = getval(qs or "", "q") or ""
+    q = q:upper()
+    -- q = q:match("[^ %+]+") or "" -- FIRST ONE!
+    q = urlDecode(q)
+    return ""
+end
+
+function getQ()
+    return q
+end
+
+function qformAttribs(user, vuri, qs, acct)
+	return [[method="get" action="]] .. vuri .. [["]]
+end
+
+function getTsn()
+    return "" .. os.time()
+end
+
+function qmatchesOne(one, list)
+    for x in list:gmatch("[^ %+]+") do
+        if one == x then
+            return true
+        end
+    end
+    return false
+end
+
+function getStockJson()
+    local f, ferr = io.open("botstocks.hist", "r")
+    assert(f, "Unable to open stock history data: " .. (ferr or "?"))
+	do
+		local fsz = f:seek("end", 0)
+		-- local sizelimit = 1024 * 1024 * 4 -- About a year?
+		-- local sizelimit = 1024 * 1024 * 1 -- About 3 months?
+		local sizelimit = 1024 * 352 -- About 1 month?
+		-- local sizelimit = 1024 * 96 -- About 1 week?
+		if fsz > sizelimit then
+			f:seek("set", fsz - sizelimit);
+			f:read("*l") -- Skip partial line.
+		else
+			f:seek("set", 0)
+		end
+	end
+    local hist = {}
+    local oneday = 86400
+    local tsDayAgo = os.time() - math.floor(oneday * 1)
+    local tsWeekAgo = os.time() - math.floor(oneday * 7)
+    local tsMonthAgo = os.time() - math.floor(oneday * 30.4375)
+    local tsMonth3Ago = os.time() - math.floor(oneday * 30.4375 * 3)
+    local tsYearAgo = os.time() - math.floor(oneday * 365.25)
+    local tsMaxAgo
+    local plain = getval(qs or "", "plain")
+    if plain == "day" then
+        tsMaxAgo = tsDayAgo
+    elseif plain == "week" then
+        tsMaxAgo = tsWeekAgo
+    elseif plain == "month" then
+        tsMaxAgo = tsMonthAgo
+    else --if plain == "month3" then
+		tsMaxAgo = tsMonth3Ago
+    end
+
+    local function addhist(sym, ts, price)
+        assert(type(sym) == "string", "sym is not a string")
+        assert(type(ts) == "number", "ts is not a number")
+        assert(type(price) == "number", "price is not a number")
+        -- table.insert(hist, { ts, price })
+        local t = hist[sym]
+        if not t then
+            t = {}
+            hist[sym] = t
+        end
+        table.insert(t, { ts, price })
+    end
+
+    local lastprice = 0
+    local lastsymbol = ""
+    local avgsum = 0
+    local avgcount = 0
+    local avgsym = ""
+    local avgts = -4242
+    for fl in f:lines() do
+        local stb, symbol, sprice = fl:match("([^ ]+) ([^ ]+) ([^ ]+)")
+        local tb = tonumber(stb)
+        assert(tb, "invalid tb")
+        local price = tonumber(sprice)
+        assert(price, "invalid price")
+        -- if q == symbol or q == "" then
+        if q == "" or qmatchesOne(symbol, q) then
+            -- log("  Found tb" .. tb .. " for $" .. price)
+            local ts = tb + TimeBase
+            if ts >= tsMaxAgo then
+                if q == "" then
+                    if avgts == ts then
+                        avgsum = avgsum + price
+                        avgcount = avgcount + 1
+                    else
+                        if avgsym ~= "" then
+                            local tprice = math.ceil(avgsum / avgcount)
+                            -- table.insert(hist, { avgts, tprice })
+                            addhist("", avgts, tprice)
+                            lastprice = tprice
+                        end
+                        avgsym = symbol
+                        avgsum = price
+                        avgcount = 1
+                        avgts = ts
+                    end
+                else
+                    -- table.insert(hist, { ts, price })
+                    addhist(symbol, ts, price)
+                    lastprice =  price
+                end
+                lastsymbol = symbol
+            end
+        end
+    end
+    if q == "" and avgcount > 0 then
+        local tprice = math.ceil(avgsum / avgcount)
+        -- table.insert(hist, { avgts, tprice })
+        addhist("", avgts, tprice)
+        lastprice =  tprice
+    end
+    -- table.insert(hist, { os.time(), lastprice }) -- Do in all cases.
+    -- addhist(lastsymbol, os.time(), lastprice)
+    f:close()
+    --
+	local result = { "[" }
+    local tsMergeAgo1 = tsWeekAgo - oneday
+    local tsMergeAgo2 = tsMonthAgo - oneday
+    local tsMergeAgo3 = tsMonthAgo * 2 - oneday
+    local tsMergeDur1 = oneday / 12
+    local tsMergeDur2 = oneday / 6
+    local tsMergeDur3 = oneday / 3
+    for sym, t in pairs(hist) do
+		result[#result + 1] = "["
+        result[#result + 1] = "\"" .. sym .. "\","
+        local mergeTimeStart = 0
+        local mergeTimeTotal = 0
+        local mergeValueTotal = 0
+        local mergeCount = 0
+        for i, h in ipairs(t) do
+            local ts = h[1]
+            local val = h[2]
+            if mergeCount > 0 or ts < tsMergeAgo1 then
+                if mergeTimeStart == 0 then
+                    mergeTimeStart = ts
+                end
+                mergeTimeTotal = mergeTimeTotal + ts
+                mergeValueTotal = mergeValueTotal + val
+                mergeCount = mergeCount + 1
+                local mergeTimeDiff = ts - mergeTimeStart
+                local mergedur = tsMergeDur1
+                if ts < tsMergeAgo2 then
+                    mergedur = tsMergeDur2
+                    if ts < tsMergeAgo3 then
+                        mergedur = tsMergeDur3
+                    end
+                end
+                if mergeTimeDiff >= mergedur then
+                    ts = math.floor(mergeTimeTotal / mergeCount)
+                    val = math.floor(mergeValueTotal / mergeCount)
+                    result[#result + 1] = " [" .. ts .. "," .. val .. "],"
+                    mergeTimeStart = 0
+                    mergeTimeTotal = 0
+                    mergeValueTotal = 0
+                    mergeCount = 0
+                end
+            else
+                result[#result + 1] = " [" .. ts .. "," .. val .. "],"
+            end
+        end
+        result[#result + 1] = "null" -- null after last comma for IE.
+        result[#result + 1] = "],"
+    end
+
+    result[#result + 1] = "null" -- null after last comma for IE.
+    result[#result + 1] = "]"
+    return table.concat(result, "\n")
+end
+
+function getDur(user, vuri, qs, acct)
+    local plain = getval(qs or "", "plain")
+    return plain or "day"
+end
+
+function changePlainJS(user, vuri, qs, acct)
+    local s = ""
+    local plain = getval(qs or "", "plain")
+    if plain then
+        s = s .. " $('h4, #qform, #chartlinks').hide(); \n"
+        s = s .. " $('body').css('margin', 0); \n"
+    end
+    return s
+end
+
+--></lua>
+    <@init(...)@>
+    <title>dbot - <@nick@></title>
+    <style>
+        body { font-family: helvetica, arial; margin: 10px; background-color: white; color: black; }
+        a { color: black }
+        #qchart { margin: 15px 0 5px 5px; }
+        .selqlink { font-weight: bold; text-decoration: none; }
+        #chartlinks { font-size: 10pt; }
+    </style>
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="flot/excanvas.min.js"></script><![endif]-->
+    <script src="jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="flot/jquery.flot.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var tsn = <@getTsn()@>;
+        var stockdata = <@getStockJson(...)@>;
+    </script>
+</head>
+<body>
+    <h4>Botstock <@getQ(...)@></h4>
+    <form @@qformAttribs(...)@@ id="qform">
+        <input name="q" id="qinput" value="@@getQ(...)@@"> <input type="submit" value="Go">
+    </form>
+
+    <div id="qchart" style="width: 400px; height: 250px"></div>
+
+    <div id="chartlinks">
+        View:
+        <a href="#" id="qday" onclick="showqchart('day'); return false;">Day</a>
+        | <a href="#" id="qweek" onclick="showqchart('week'); return false;">Week</a>
+        | <a href="#" id="qmonth" onclick="showqchart('month'); return false;">Month</a>
+        <!-- | <a href="#" id="qmonth3" onclick="showqchart('month3'); return false;">3 Month</a> -->
+        <!-- | <a href="#" id="qyear" onclick="showqchart('year'); return false;">Year</a> -->
+    </div>
+
+    <script type="text/javascript">
+        function showqchart(w)
+        {
+            $('.selqlink').removeClass('selqlink');
+            $('#q' + w).addClass('selqlink')
+
+            if(w == 'day')
+            {
+                ago = tsn - 86400;
+            }
+            else if(w == 'week')
+            {
+                ago = tsn - 86400 * 7;
+            }
+            else if(w == 'month')
+            {
+                ago = tsn - Math.floor(86400 * 30.4375);
+            }
+            else if(w == 'month3')
+            {
+                ago = tsn - Math.floor(86400 * 30.4375 * 3);
+            }
+            else if(w == 'year')
+            {
+                ago = tsn - Math.floor(86400 * 365.25);
+            }
+
+            /*
+            var qdata = []
+            var xticks = []
+            for(var i = 0; i < stockdata.length; i++)
+            {
+                var d = stockdata[i];
+                if(d && d[0] > ago)
+                {
+                    qdata.push(d);
+                }
+            }
+            $.plot($("#qchart"), [ qdata ], { xaxis: { ticks: xticks } });
+            */
+
+            var qdata = []
+            var xticks = []
+            for(var si = 0; si < stockdata.length; si++)
+            {
+                if(stockdata[si])
+                {
+                    var cur = { }
+                    cur.data = []
+                    qdata.push(cur)
+                    for(var i = 0; i < stockdata[si].length; i++)
+                    {
+                        var d = stockdata[si][i];
+                        if(typeof(d) == "string")
+                        {
+                            cur.label = d;
+                        }
+                        else
+                        {
+                            if(d && d[0] > ago)
+                            {
+                                cur.data.push(d);
+                            }
+                        }
+                    }
+                }
+            }
+            $.plot($("#qchart"), qdata, { xaxis: { ticks: xticks }, legend: { position: "nw" } });
+        }
+        //showqchart('day')
+        showqchart('<@getDur(...)@>');
+        <@changePlainJS(...)@>
+    </script>
+
+</body>
+</html>

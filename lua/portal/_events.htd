@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<lua><!--
+-- Copyright 2012-2014 Christopher E. Miller
+-- License: GPLv3, see LICENSE file.
+
+    eventTypes = {}
+    
+    function getEventTableCells()
+        local t = { }
+        local numdays = 2
+        local oneday = 60 * 60 * 24
+        local curday = 1
+        local dayts = os.time() - oneday * (numdays - 1) -- Oldest first.
+        local maxlines = 5000 -- Prevent OOM... for now.
+        local itotal = 0
+        local i = 0
+        while curday <= numdays do
+            local fp = "./eventlog/event_" .. os.date("!%Y-%m-%d", dayts) .. ".log"
+            local f = io.open(fp)
+            if f then
+                for line in f:lines() do
+                    local etype, estime, emsg = line:match("^([^ ]+) (%d+) (.*)")
+                    local etime = tonumber(estime)
+                    if etime then
+                        i = i + 1
+                        itotal = itotal + 1
+                        -- string.format("%0.9x", etime)
+                        t[i] = "<tr id='ev" .. string.format("%0.6x", itotal)
+                            .. "' class='" .. etype .. "'><td>"
+                            .. etype .. "</td><td class='nw'>"
+                            .. os.date("!%Y-%m-%d %H:%M:%S", etime) .. "</td><td>"
+                            .. emsg:gsub("[&<>]", function(s)
+                                    if s == "&" then
+                                        return "&amp";
+                                    elseif s == "<" then
+                                        return "&lt";
+                                    elseif s == ">" then
+                                        return "&gt";
+                                    end
+                                end) .. "</td></tr>"
+                        eventTypes[etype] = true
+                        if i >= maxlines then
+                          i = 0 -- Array wrap around at maxlines.
+                        end
+                    end
+                end
+                f:close()
+            end
+            curday = curday + 1
+            dayts = dayts + oneday
+        end
+        -- Sort by ev# in tag; can't just reverse the array because of array wrapping at maxlines.
+        table.sort(t, function(a, b)
+          return b < a
+        end)
+        return table.concat(t, "\n")
+    end
+--></lua>
+    <title>dbot - events</title>
+    <style>
+        body { font-family: helvetica, arial; margin: 10px; background-color: white; color: black; }
+        a { color: black }
+        #eventtable
+        {
+            border-collapse: collapse;
+            border: solid 1px gray;
+            table-layout: fixed;
+        }
+        #eventtable th, #eventtable td
+        {
+            border: solid 1px gray;
+            /* vertical-align: top; */
+            padding: 1px;
+        }
+        #eventtable .nw
+        {
+            white-space: nowrap;
+        }
+    </style>
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="flot/excanvas.min.js"></script><![endif]-->
+    <script src="jquery-1.7.1.min.js" type="text/javascript"></script>
+</head>
+<body>
+    <h4>Events</h4>
+
+<table id="eventtable">
+<thead><tr><th>Type</th><th>Time</th><th>Message</th></tr></thead>    
+<tbody>
+<@getEventTableCells()@>
+</tbody>
+</table>
+<!-- <p>Sorry it's disabled!</p> -->
+
+</body>
+</html>

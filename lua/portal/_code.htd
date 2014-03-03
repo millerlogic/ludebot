@@ -1,0 +1,550 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<lua><!--
+-- Copyright 2012-2014 Christopher E. Miller
+-- License: GPLv3, see LICENSE file.
+
+local editornum
+function getEditornum()
+    return editornum
+end
+
+function moduleHtmlOptions(user, vuri, qs, acct)
+	local s = ""
+	local modname = getval(qs or "", "module")
+	for i, modinfo in ipairs(userCodeModuleInfo) do
+		s = s .. "<option"
+		if modinfo.name == modname then
+			s = s .. " selected=\"selected\""
+		end
+		s = s .. " value=\"" .. modinfo.name .. "\""
+		s = s .. ">"
+		s = s .. modinfo.name .. " - " .. modinfo.desc
+		s = s .. "</option>\n"
+	end
+	return s
+end
+
+function codeformInfoCodeName(user, vuri, qs, acct)
+	if not qs then return "" end
+	local cname = qs:match("[%?&]name=([^&]+)")
+	if not cname then return "" end
+	return urlDecode(cname) or ""
+end
+
+-- Just for "name"&"module" - which is not disabled if no name entered.
+function codeformInfofieldNeedInputIfDisabled(user, vuri, qs, acct)
+	local cname = codeformInfoCodeName(user, vuri, qs, acct)
+	if cname:len() > 0 then
+		-- return "disabled=\"disabled\"" -- Doesn't send the value on submit.
+		return "readonly=\"readonly\""
+	end
+	return ""
+end
+
+function codeformInfofieldHtmlAfterName(user, vuri, qs, acct)
+	if vuri ~= "/t/create" and vuri ~= "/t/alias" then
+		local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		if cname:len() > 0 then
+			return ""
+		else
+			return " <input type=\"submit\" value=\"Go\" id=\"gobutton\">"
+		end
+	end
+	return " <span style=\"color: #CC0000;\">*</span>"
+end
+
+function codeformCodeboxIfDisabled(user, vuri, qs, acct)
+	if vuri == "/t/view" then
+		return "style=\"background-color: #EEEEEE; color: black;\""
+	end
+	return ""
+end
+
+function codeformInfoAuthorName(user, vuri, qs, acct)
+	if vuri == "/t/create" or vuri == "/t/alias" then
+		return acct:nick()
+	else
+		local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		if cname:len() > 0 then
+			if qs then
+				-- lookup author...
+				local finfo = getUdfInfo(getval(qs, "module"), getval(qs, "name"))
+				if finfo then
+					return nickFromSource(finfo.faddr or "?")
+				end
+			end
+			return "?"
+		end
+	end
+	return ""
+end
+
+
+local gseealsomod, gseealsofunc
+
+function codeformTextareaCode(user, vuri, qs, acct)
+	if vuri == "/t/create" then
+		return "return \"hello, world\"\n"
+	elseif vuri == "/t/alias" then
+        return "return " .. urlDecode(getval(qs, "module") or "etc") .. "."
+            .. urlDecode(getval(qs, "of") or "NAME_HERE") .. "(...)\n"
+	else
+		local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		if cname:len() > 0 then
+			-- lookup code...
+			-- make it html safe
+			if qs then
+				-- lookup author...
+				-- accountCanSaveUdf(acct, moduleName, funcName)
+				local modname = urlDecode(getval(qs, "module") or "")
+				local funcname = urlDecode(getval(qs, "name") or "")
+				local finfo = getUdfInfo(modname, funcname)
+				if finfo then
+					local code, err = loadUdfCode(finfo)
+					if not code then
+						log(loadUdfCode, modname, funcname, err)
+						return "-- An error occured\n"
+					else
+                        if code:len() < 128 then
+                            local xmod, xfunc, y = code:match("(etc)%.([a-zA-Z0-9_]+)()")
+                            if y then
+                                if not code:find("etc%.([a-zA-Z0-9_]+)", y) then
+                                    gseealsomod = xmod
+                                    gseealsofunc = xfunc
+                                end
+                            end
+                        end
+						local b4 = ""
+                        if vuri ~= "/t/view" then
+                            if not accountCanSaveUdf(acct, modname, funcname) then
+                                b4 = "\n-- You do not have permission to edit this function\n\n"
+                            end
+                        end
+						return b4 .. code:gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
+					end
+				end
+			end
+			return "-- This function does not exist\n"
+		end
+	end
+	return ""
+end
+
+function codeformEditInfo(user, vuri, qs, acct)
+    if vuri == "/t/view" or vuri == "/t/edit" then
+        local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		if cname:len() > 0 then
+            if qs then
+				-- lookup author...
+				local finfo = getUdfInfo(urlDecode(getval(qs, "module")), urlDecode(getval(qs, "name")))
+				if finfo then
+					if finfo.acctID == acct.id then
+                        if vuri == "/t/view" then
+                            return "<a style=\"font-size: 10pt;\" href=\"/t/edit" .. qs .. "\">(edit)</a>"
+                        else
+                            return "<span style=\"font-size: 10pt;\">(editing)</span>"
+                        end
+					end
+				end
+			end
+		end
+    end
+    return ""
+end
+
+function codeformAttribs(user, vuri, qs, acct)
+	if vuri ~= "/t/view" then
+		local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		if vuri == "/t/create" or vuri == "/t/alias" or cname:len() > 0 then
+			return [[method="post" action="/t/code-post"]]
+		end
+	end
+	return [[method="get" action="]] .. vuri .. [["]]
+end
+
+
+function codeformPw(user, vuri, qs, acct)
+    -- assert(acct, "no acct")
+    -- assert(acct.spw, "no spw")
+    if acct and acct.spw then
+        return acct.spw
+    end
+    return ""
+end
+
+function codeExtraHead(user, vuri, qs, acct)
+	local s = ""
+	-- editornum = getval(qs or "", "editor") or "1"
+	editornum = getval(qs or "", "editor") or "3"
+	local readonly = vuri == "/t/view"
+	if editornum == "3" then
+        local js_is_readonly = "false"
+		if readonly then
+			js_is_readonly = "true"
+		end
+        s = s .. [[
+<link rel="stylesheet" href="lib/codemirror.css">
+<link rel="stylesheet" href="theme/neat.css">
+<style type="text/css">
+    .CodeMirror { border: solid 1px gray; width: 800px; height: 600px; }
+    .CodeMirror-scroll { overflow-y: auto; height: 600px; }
+    .CodeMirror-matchingbracket { color: navy !important; background-color: #dddddd; }
+    #seealso { font-size: smaller; }
+</style>
+<script src="lib/codemirror.js" type="text/javascript"></script>
+<script src="mode/lua/lua.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var codebox_readonly = ]] .. js_is_readonly .. [[;
+</script>
+]]
+	elseif editornum == "2" then
+		local js_is_editable = "true"
+		if readonly then
+			js_is_editable = "false"
+		end
+		s = s .. [[
+<script src="edit_area_full.js" type="text/javascript"></script>
+<script language="javascript" type="text/javascript">
+editAreaLoader.init({
+	id : "codebox"		// textarea id
+	,syntax: "lua"			// syntax to be uses for highgliting
+	,start_highlight: true		// to display with highlight mode on start-up
+	,word_wrap: true
+	,toolbar:  "fullscreen, |, select_font,|, highlight, reset_highlight, |, help"
+	,allow_toggle: false
+	,max_undo: 100
+	,replace_tab_by_spaces: 2
+	,is_editable: ]] .. js_is_editable .. [[
+});
+</script>
+		]]
+	else
+		if readonly then
+			s = s .. [[
+<script language="javascript" type="text/javascript">
+	$(function(){$("textarea.codebox").keydown(function(a)
+	{
+		var b=a.keyCode||a.charCode;
+		if(b == 9 || b == 10 || b == 13 || b == 32)
+		{
+			a.preventDefault()
+		}
+	})})
+</script>
+]]
+		else
+			s = s .. [[
+<script src="jquery-code.js" type="text/javascript"></script>
+]]
+		end
+	end
+	if vuri == "/t/create" or vuri == "/t/alias" or vuri == "/t/edit" then
+
+	else
+
+	end
+	return s
+end
+
+function codeformSaveButtonHtml(user, vuri, qs, acct)
+	if vuri ~= "/t/view" then
+		local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		if cname:len() > 0 or vuri == "/t/create" or vuri == "/t/alias" then
+			return [[ <input type="submit" value="Save" id="savebutton">
+			<input type="hidden" name="save" value="]] .. vuri .. [[">
+			<small>&copy; dbot</small>]]
+		end
+	end
+	return ""
+end
+
+function funclistHtml(user, vuri, qs, acct)
+    local s = ""
+    if gseealsomod and gseealsofunc then
+        s = s .. [[
+<script><!--
+    var sa = document.getElementById('seealso');
+    var qsa = $(sa);
+    if(sa && qsa.length)
+    {
+        qsa.html('See also: <a href="/t/view?module=]] .. gseealsomod .. [[&name=]] .. gseealsofunc
+            .. [[">]] .. gseealsomod .. '.' .. gseealsofunc .. [[</a>')
+    }
+--></script>
+        ]]
+    end
+    if vuri == "/t/alias" then
+      s = s .. [[
+        <script>
+        var sa = document.getElementById('seealso');
+        var qsa = $(sa);
+        if(sa && qsa.length)
+        {
+          qsa.html("<marquee>Click on Save below to save this alias!</marquee>");
+          qsa.mouseover(function()
+          {
+            qsa.css("position", "absolute");
+            qsa.css("left", Math.floor(Math.random() * 500));
+            qsa.css("top", Math.floor(Math.random() * 500));
+            qsa.css("width", 400);
+            qsa.addClass("lolmove");
+            $('*').mouseover(function() {
+              var qthis = $(this);
+              qthis.css("position", "relative");
+              qthis.animate({"left": Math.max(0, Math.floor(Math.random() * 50) - 25)}, 1000);
+              qthis.animate({"top": Math.max(0, Math.floor(Math.random() * 50) - 25)}, 1000);
+            });
+          });
+          setInterval(function() {
+            if(qsa.is(".foo"))
+            {
+              qsa.css("color", "");
+              qsa.removeClass("foo");
+            }
+            else
+            {
+              qsa.css("color", "transparent");
+              qsa.addClass("foo");
+            }
+            if(qsa.is(".lolmove"))
+            {
+              qsa.css("left", Math.floor(Math.random() * 500));
+              qsa.css("top", Math.floor(Math.random() * 500));
+            }
+          }, 1000);
+        }
+        </script>
+        ]]
+    end
+    s = s .. "<h6 class='icon folder'>Library</h6>\n"
+    local lib = {
+        {"nick"}, {"chan"}, {"bot"}, {"names", "[delim]"}, {"nicklist", ""}, {"pickone", "table"},
+        {"rnick", ""}, {"print", "..."}, {"cash", "[nick]"}, {"parseURL", "url"}, {"urlEncode", "url"},
+        {"urlDecode", "url"},
+        -- {"httpGet", "url, callback"},
+        {"httpGet", "url"},
+        {"html2text", "html"}, {"getContentHtml", "html"},
+        {"eval", "expr"}, { "arg", "[]" },
+        -- { "setTimeout", "func, ms" },
+        { "sleep", "secs" },
+        { "input", "words...", "[timeout]" },
+        { "Cache", "[]" },
+        -- {"getCards", "[numberOfDecks], [wantJokers]"},
+        -- {"cardsString", "cards, [boldLastCard]"}, {"cmdchar"}, {"dest"},
+        -- {"halt",""},
+        {"sendNotice", "to, msg"}
+    }
+    table.sort(lib, function(a, b)
+        return a[1]:lower() < b[1]:lower()
+    end)
+    for i, ent in ipairs(lib) do
+        if ent[2] then
+            if ent[2] == "[]" then
+                s = s .. "<div class='ent icon table'>" .. ent[1] .. ent[2] .. "</div>\n"
+            else
+                s = s .. "<div class='ent icon function'>" .. ent[1] .. "(<span class='params' title='"
+                    .. ent[2] .. "'>" .. ent[2] .. "</span>)</div>\n"
+            end
+        else
+            s = s .. "<div class='ent icon value'>" .. ent[1] .. "</div>\n"
+        end
+    end
+    s = s .. "<div class='ent icon module'><a target=\"luastdlib\" href=\"http://www.lua.org/manual/5.1/manual.html#5.1\">Standard Library...</a></div>\n"
+    local udf = dbotData["udf"]
+    if udf then
+        for k, mi in pairs(userCodeModuleInfo) do
+            local m = udf[mi.name]
+            if m then
+                s = s .. "<h6 class='icon folder'>" .. mi.name .. "</h6>\n"
+                local t = {}
+                local fall = getval(qs or "", "showall") == "1"
+                for k, v in pairs(m) do
+                    if fall or (k:len() > 2 or k:lower() ~= k) then
+                        table.insert(t, k)
+                    end
+                end
+                table.sort(t, function(a, b)
+                    local afinfo = m[a]
+                    local bfinfo = m[b]
+                    local atime = afinfo.time
+                    local btime = bfinfo.time
+                    local boost = 604800 -- Give my functions a week's boost.
+                    if afinfo.acctID == acct.id then atime = atime + boost end
+                    if bfinfo.acctID == acct.id then btime = btime + boost end
+                    return btime < atime
+                end)
+                local flim = math.min(20, #t)
+                if fall then
+                    flim = #t
+                end
+                for i = 1, flim do
+                    local uact = "view"
+                    -- if m[t[i]].acctID == acct.id then uact = "edit" end
+                    s = s .. "<div class='ent icon function'><a href=\"/" .. uact
+                        .. "?module=" .. mi.name .. "&name=" .. t[i] .. "\">"
+                        .. t[i] .. "</a>()</div>\n"
+                end
+                if mi.name == "etc" then
+                    s = s .. "<div class='ent icon value'>cmdchar</div>\n"
+                end
+            end
+        end
+    end
+    return s
+end
+
+--></lua>
+    <meta http-equiv="X-UA-Compatible" content="IE=8" />
+    <title>dbot - <@nick@></title>
+    <style>
+        body { font-family: helvetica, arial; margin: 10px; background-color: white; color: black; }
+        a { color: black }
+        #codeform {  float: left;  }
+            #codeform td { text-align: left; }
+            #codeform .col1 { width: 150px; }
+            #codeform .infofield { width: 150px;}
+            #codebox { font-family: monospace; width: 800px; height: 600px; }
+        #funclist { float: right; width: 180px; overflow: hidden; padding: 2px; border: solid 1px #EEEEEE; }
+            #funclist h6 { font-size: 1em; font-weight: bold; margin: 2px 0 0 0; padding: 0; }
+			#funclist .icon {
+				padding-left: 22px;
+				background-repeat: no-repeat;
+				line-height: 20px;
+				background-position-y: 2px;
+				background-position-x: 2px;
+			}
+            #funclist .ent { margin-left: 2px; overflow: hidden; white-space: nowrap; }
+                #funclist .ent a { text-decoration: none; }
+                #funclist .ent a:hover { text-decoration: underline; }
+                #funclist .params { font-style: italic; color: gray; }
+			    #funclist .folder { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABfVBMVEX/AP/h3tqspI/g3NXa0qD38Kv57qb765+qoY2roo727qf96Jj71HGnnomjmYaflIKakH6XjHqTiHeooIv26qD+6Jj/2nr/1GelnIjz5pq5rIu3qoqzpoivo4aqn4OmmoGhlX+dkXyZjnqVi3mjmoby4ZLexICwp4793oH/4IT/34H/3Xv/2HT/1mvRqVakm4+flYPx3In/4oyxqI3Huoz/0F//zVT8xUv3u0Hboi50Z1HGwLKckYDv14HgxX2wpoz+3YD/02j/0WL/zVj8x073vkbytjvsrDGBaSWhlXqYjn3s0nmtpIvOwon/2HH/02X/zlz+yVH6wUn1uT/usDTpqCnNhRBbSyKVinrTvn6upIr/3H7/z1//y1X6xEz1vEHwszfrqi7loCTUjBOAZyNtaV6Sh3eroYnUsmrNjwDHjAS+iAi0gg+pfBWfdxuWch9cSyK1rZuPhHWPgGaHeWB7bldvYk5hVkRSSDlDOi41LiUpIhseGRQWEg4YEw7LIlgaAAAAAXRSTlMAQObYZgAAAAlvRkZzAAAACAAAAAgA/qC+qwAAAAlwSFlzAAAOwwAADsMBx2+oZAAAAAl2cEFnAAAAIAAAACAAh/qcnQAAALZJREFUGNNjYCAIGJlAgBkhwMTCysrGzoEQ4eQC8rl5ePn4BQSFQALCImzsomLiYAAWkJBkF5WSkpaRlZNXUFRSFmJQUeVWU9fQBAItbR1dPX0GA0MjYxMdoHpTM3MLSytrBhtbO3sHR3EnZxdXN3cPTwYGL28fXz//gMCg4JDQsHBrBoaIyKjomNi4+ITEpOSUVKAtaekZmZmZWdk5uXn5BYVAgaLiktKy8orKquqa2jrCPgUCAIe+Ilu3upatAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDEyLTA3LTA5VDAxOjAzOjMzKzAyOjAw4KOkqQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxMC0wMy0xOVQwOTozNDoyNiswMTowMHx6PfYAAAAASUVORK5CYII=); }
+			    #funclist .module { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAllBMVEX/AP/s5dn8tATd0Lj/zGarfCj+6f3Xa9igciH/pv/81fzurQyTZxrmQuTNH8vRvpv8Xv+GhoaFWxLIsIdKUFb7w/vp8Ok5gisufiYneiKT14iIzX5ps2Qzgixfr1pfqVtPnE0cdxnw8Pdzmufn5/MobyccZxqXvvyhwPuCsfsxVqLk5PLh4fAlTZ1infpYhuHLy+W7u93YtNlPAAAAAXRSTlMAQObYZgAAAAlvRkZzAAAACAAAAAgA/qC+qwAAAAlwSFlzAAALEgAACxIB0t1+/AAAAAl2cEFnAAAAIAAAACAAh/qcnQAAAIxJREFUGNOFj9sOgjAMQAsKE9CJWot4lyleK/r/P+c2tmRvnocmPWlOUgBLFA8gJIqHCUAqUi/0PgIQmcidKJJirMUkk07ofapFKb2YzReoG9IL7AcuZW7TGOg+TdWqJnTGpKv1ZluTuzFp2u0Px1OjlDq7NF3altT1dn88AWza8OJ313H40YeZv/CXH8wYCTISlo2RAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDEyLTA3LTA5VDAxOjAzOjMzKzAyOjAw4KOkqQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxMC0wMy0xOVQwOTozNDoyNiswMTowMHx6PfYAAAAASUVORK5CYII=); }
+			    #funclist .function { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAA2FBMVEX/AP/++/7y2/LPiM/w4/DjrOPz4/Pw1PDuvu76rvvrkezy4PP38KvV1aystK6Kma79/f3ir+L6q/v6mPvpkOr05vSmUKe7b7zupe/6m/v6mfvmmOeQTpHp5avBxKysta2YpK6nT6jRbdL6n/vune+WUpd8LnypUqrRatLVb9W8cL3dmN6ORo+cPJ1+Ln7l4qvMzqy1u62cp67kyuSoUKnSa9PTbtR+MH+fPJ+NNY58LX3o0eipUKrLZ8yVOJZ6K3vw1fDt2O1/MIB1J3Xr0evs0uxxJHLmzObUZmf5AAAAAXRSTlMAQObYZgAAAAlvRkZzAAAACAAAAAgA/qC+qwAAAAlwSFlzAAALEgAACxIB0t1+/AAAAAl2cEFnAAAAIAAAACAAh/qcnQAAAHlJREFUGNNjYMADGNH4TMwsaHxWZjYkPjszBycXMzeYzcPLxy/ALCgkLCzCLApXISYuISksJS0DlJfllZNXYFBUEpdQVlFVg6tQ19DU0tbR1QMZoW9gaMRgbGJqZm5haYWwxtrGVs/O3gHJYkcTJ2cXFKe5urkzkAMA6OsK7c4mthUAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTItMDctMDlUMDE6MDM6MzMrMDI6MDDgo6SpAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDEwLTAzLTE5VDA5OjM0OjI2KzAxOjAwfHo99gAAAABJRU5ErkJggg==); }
+			    #funclist .table { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAJ1BMVEX/AP/////u7u6IiIgzMzPe3t5NTU34+Pi6uroKCgpkZGS/v7/o6OgetxIMAAAAAXRSTlMAQObYZgAAAAFiS0dEAf8CLd4AAAAJb0ZGcwAAAAgAAAAIAP6gvqsAAAAJcEhZcwAACxIAAAsSAdLdfvwAAAAJdnBBZwAAACAAAAAgAIf6nJ0AAABXSURBVAjXY2CAA0ZGAQZBRhBL2YHBWQHEMAlgCDEASaUwMLAkIjEY2T0YGDjcgQzJBUDhlQJAkdkMDNzTgRzBTAYGzkQBoByYATLH8gDDSQNkkxF2oQEAQLQLgghRSo4AAAAldEVYdGRhdGU6Y3JlYXRlADIwMTItMDctMDlUMDE6MDM6MzMrMDI6MDDgo6SpAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDEwLTAzLTE5VDA5OjM0OjI2KzAxOjAwfHo99gAAAABJRU5ErkJggg==); }
+			    #funclist .value { background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABelBMVEX/AP+4rKPEuJXd2dS1poGjl4CgloCZj3qThXOAcVzNyL+cuJmmwa7QyML667B/bVv/62764nL012fcvVSLclGJnGmFzIXt6+eAa1f/7WiumFj54XL33Wryz1btx0v6uiKmol9TrEF9nd+qutqspI/543+VhFNPOjD222nz0ljtw0DquzHsqBGMkFBBnjKkxf+5yeX24YNwYUvizXpnYFJQPUHfsjLImR3EkxWOYhRRZkA/lym3yvHl04aJkqdwYUrewWFZTVf/0B8zJxUKBxAuIQJlVk9beFkyjBjByNH////p6eKEdV7l5N/OysLWqS4bEAtgXF2WnaSnvqQpZhz//fv8/v6srbByXEHT2ePj7f9GTlTAx9H9/v74+/7y9v3o8Pzc6f/CydOir8T+///W5f/ByNL8/v/4+v3v9Pvm7vve6frS4vjQ4v/5+//L3v3Iz9n2///s+f/h8P/V6v/S6v9zdXxLS05NT1RNUVZMUFNLT1JMT1JLTlEnI/syAAAAAXRSTlMAQObYZgAAAAFiS0dESh4MtcYAAAAJb0ZGcwAAAAgAAAAIAP6gvqsAAAAJcEhZcwAACxIAAAsSAdLdfvwAAAAJdnBBZwAAACAAAAAgAIf6nJ0AAADJSURBVBjTY2AAAkYmZhZWNnYOTi5uHhCfgZePX0BAQFBIWERUDCwgLiEpJSAtIysnr6DIoKSkpKyiqiaprqGppa2jq8egpG+gYmhkbCJpamZuYWllzaBko2JrZGfv4Ojk7OLq5u7B4Onl7ePr5WfvHxAYxMAQHAIUCA318goLj4iMigbbEAMSiI2LT0hIhAgkeSUnpySDQCpEIA2oIj0jMys7JxcmkJycB1aRDxEoAKooLCwsKi4phQiUlVdUVFRWVddU10IECAIAb7UwI9BWKWwAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTItMDctMDlUMDE6MDM6MzMrMDI6MDDgo6SpAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDEwLTAzLTE5VDA5OjM0OjI2KzAxOjAwfHo99gAAAABJRU5ErkJggg==); }
+    </style>
+    <script src="jquery-1.7.1.min.js" type="text/javascript"></script>
+    <@codeExtraHead(...)@>
+</head>
+<body>
+    <h4>dbot functions <a href="/t/" style="font-weight: normal; font-size: 10pt">(home)</a></h4>
+    <form @@codeformAttribs(...)@@ id="codeform">
+    <input type="hidden" name="pw" value="@@codeformPw(...)@@">
+    <!-- <input type="hidden" id="st2" name="t" value=""> -->
+        <table>
+            <tr>
+                <td class="col1"><label for="codename">Function name:</label></td>
+                <td><input name="name" id="codename" class="infofield"
+                    @@codeformInfofieldNeedInputIfDisabled(...)@@
+                    value="@@codeformInfoCodeName(...)@@"
+                    >
+                    <@codeformInfofieldHtmlAfterName(...)@>
+                </td>
+            </tr>
+            <tr>
+                <td class="col1"><label for="codemodule">Module:</label></td>
+                <td><select name="module" id="codemodule" class="infofield"
+                    @@codeformInfofieldNeedInputIfDisabled(...)@@ >
+                        <@moduleHtmlOptions(...)@>
+                </select></td>
+            </tr>
+            <tr>
+                <td class="col1"><label for="codeauthor">Author:</label></td>
+                <td><input class="infofield" id="codeauthor" disabled="disabled"
+                    value="@@codeformInfoAuthorName(...)@@" ></td>
+            </tr>
+            <tr>
+                <td colspan="3">
+                    <div id="codearea">
+                        <div>
+                            <table cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="left" width="25%">
+                                        <label for="codebox">Lua code:</label>
+                                    </td>
+                                    <td align="center" style="text-align: center;" width="50%">
+                                        <span id="seealso"></span>
+                                    </td>
+                                    <td align="right" width="25%" style="text-align: right;">
+                                        <@codeformEditInfo(...)@>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <textarea id="codebox" class="codebox" name="code"
+                            @@codeformCodeboxIfDisabled(...)@@
+                            ><@codeformTextareaCode(...)@></textarea>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div><@codeformSaveButtonHtml(...)@></div>
+                </td>
+            </tr>
+        </table>
+    </form>
+    <div id="funclist">
+        <@funclistHtml(...)@>
+    </div>
+    <script type="text/javascript">
+        //var qq = "&" + location.search.substring(1)
+        //var ieditor = qq.indexOf("&editor=")
+        //if(-1 != ieditor)
+        {
+            //var editornum = qq.substr(ieditor + 8, 1);
+            var editornum = <@getEditornum(...)@>
+            $('#codeform').prepend($('<input type="hidden" name="editor" value="' + editornum + '">'));
+            if(editornum == 3)
+            {
+                var editor = CodeMirror.fromTextArea(document.getElementById("codebox"), {
+                    tabMode: "indent",
+                    matchBrackets: true,
+                    lineNumbers: true,
+                    readOnly: codebox_readonly,
+                    smartIndent: false,
+                    theme: "neat"
+                });
+            }
+        }
+        if($('#gobutton').length)
+        {
+            $('#codebox').attr('name', '')
+            $('#codearea').hide();
+        }
+        var savebutton = $('#savebutton');
+        if(savebutton.length)
+        {
+            $('#codeform').submit(function()
+            {
+                if($('#codename').val() == '')
+                {
+                    $('#codename').focus()
+                    alert("You must enter a function name")
+                    return false;
+                }
+                var codeboxlen = typeof(editAreaLoader) !== "undefined"
+                    ? editAreaLoader.getValue("codebox").length
+                    : $('#codebox').val().length;
+                if(0 == codeboxlen)
+                {
+                    if(!confirm("Are you sure you want to delete this function?"
+                        + "\n\nFunctions are deleted when all code is removed."
+                        + "\nIf you want to leave a blank function, insert a comment."
+                        + "\n\nClick OK to delete."
+                        ))
+                    {
+                        return false;
+                    }
+                }
+                else if(codeboxlen > 1024 * 100)
+                {
+                    alert("Error: Too much code, please break it up into smaller functions");
+                    return false;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
