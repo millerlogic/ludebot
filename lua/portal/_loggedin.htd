@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<lua><!--
+-- Copyright 2012-2014 Christopher E. Miller
+-- License: GPLv3, see LICENSE file.
+
+function getCashInfo(user, vuri, qs, acct)
+	local s = ""
+	local cash = getUserCash(nick, true)
+	local gtotal = cash
+	s = "You have $" .. math.floor(cash)
+	local q = nil
+	if calcSharesTotalPrice then
+        local ustocks
+        if alData and alData.userstocks then
+            ustocks = alData.userstocks[nick:lower()]
+        end
+        if ustocks then
+            for k, v in pairs(ustocks) do
+                local x = calcSharesTotalPrice(k, v.count)
+                gtotal = gtotal + x
+                s = s .. "<br>" .. v.count .. " shares of <a class=\"stocklink\" href=\"/botstock?q=" .. k .. "\" target=\"" .. k:gsub("%.", "_") .. "\">" .. k .. "</a> ($" .. math.floor(x) .. ")"
+                if q == nil then
+                    q = k
+                else
+                    q = q .. '+' .. k
+                end
+            end
+        end
+    end
+    if q then
+        s = s .. "<br> * Grand total: $" .. math.floor(gtotal)
+        s = s .. "<br><iframe src=\"/botstock?plain=week&q=" .. q .. "\" frameBorder=\"0\" style=\"width: 416px; height: 276px; overflow: hidden;\" scrolling=\"no\" ></iframe>"
+    end
+	return s
+end
+
+--></lua>
+    <meta http-equiv="X-UA-Compatible" content="IE=8" />
+    <title>dbot - <@nick@></title>
+    <style>
+        body { font-family: helvetica, arial; margin: 10px; background-color: white; color: black; }
+        a { color: black }
+        .experimental { font-size: 0.9em; }
+        .stocklink { text-decoration: none; }
+        .stocklink:hover { text-decoration: underline; }
+    </style>
+    <script src="jquery-1.7.1.min.js" type="text/javascript"></script>
+</head>
+<body>
+    <p>Hi, <@nick@>, welcome to your dbot page! Please choose from the below.</p>
+    <ul>
+        <li><a href="/t/view" class="linkhaseditor">Open function editor</a></li>
+        <li><a href="/t/create" class="linkhaseditor">Create a function</a></li>
+    </ul>
+    <script type="text/javascript">
+        function editor3enable(byes)
+        {
+            $('.linkhaseditor').each(function()
+            {
+                var qthis = $(this);
+                var href = qthis.attr('href');
+                if(href)
+                {
+                    // Note: lazy.
+                    var iq = href.indexOf('?');
+                    if(byes)
+                    {
+                        if(-1 == iq)
+                        {
+                            href = href + "?editor=3";
+                            qthis.attr('href', href);
+                        }
+                    }
+                    else
+                    {
+                        if(-1 != iq)
+                        {
+                            href = href.substring(0, iq);
+                            qthis.attr('href', href);
+                        }
+                    }
+                }
+            });
+        }
+        /*
+        var s = "";
+        s += "<input type=\"checkbox\" id=\"useeditor3\" onclick=\"editor3enable($(this).is(':checked'))\">";
+        s += "<label for=\"useeditor3\"> Use experimental syntax-color editor</label>";
+        document.write("<div class=\"experimental\">" + s + "</div>");
+        */
+    </script>
+    
+    <div style="margin-top: 1em;">
+        <@getCashInfo(...)@>
+    </div>
+    
+</body>
+</html>
