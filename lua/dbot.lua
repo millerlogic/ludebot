@@ -23,7 +23,7 @@ for i, req in ipairs(dbotReqs) do
 end
 
 dbotIncs = { -- TODO: move to config.
-	"armleg",
+	"gamearmleg",
 	-- "unicodedata",
   -- "loremconn",
 	"prepare_wordlists",
