@@ -151,11 +151,11 @@ function httpRequest(manager, url, callback, timeout, maxRedirects, method, body
 			end
 		end):start()
 	end
-  if headers then
-    for k, v in pairs(headers) do
-      sock.headers[k] = v
-    end
-  end
+	if headers then
+		for k, v in pairs(headers) do
+			sock.headers[k] = v
+		end
+	end
 	sock.onDisconnected = function(self, msg, code)
 		manager:remove(sock)
 		local data = sock.data

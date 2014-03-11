@@ -725,13 +725,13 @@ function DbotUserFSProvider:permission(res, flag, uid)
 		end
 	end
 
-  if flag == "r" then
-    -- Allow anyone to read under /user/<name>/pub/*
-    if res:find("^/user/[^/]+/pub/") then
-      print("Allowing permission to read under user pub", res)
-      return true
-    end
-  end
+	if flag == "r" then
+		-- Allow anyone to read under /user/<name>/pub/*
+		if res:find("^/user/[^/]+/pub/") then
+			print("Allowing permission to read under user pub", res)
+			return true
+		end
+	end
 
 	-- Check group permission, but don't grant full permission, especially owner.
 	if flag == "r" or flag == "w" or flag == "d" then

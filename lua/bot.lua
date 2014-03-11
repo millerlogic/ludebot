@@ -166,11 +166,11 @@ function botWait(seconds_timeout, func, state)
 		-- botRemove(state) -- Done via stop now.
 		func(state)
 	end)
-  local realstop = state.timer.stop
-  state.timer.stop = function(self, ...)
+	local realstop = state.timer.stop
+	state.timer.stop = function(self, ...)
 		botRemove(state)
-    realstop(self, ...)
-  end
+		realstop(self, ...)
+	end
 	botExpect("time", func, state)
 	return state.timer:start()
 end

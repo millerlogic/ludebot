@@ -25,7 +25,7 @@ end
 dbotIncs = { -- TODO: move to config.
 	"gamearmleg",
 	-- "unicodedata",
-  -- "loremconn",
+	-- "loremconn",
 	"prepare_wordlists",
 	"wordlists",
 }
@@ -111,12 +111,12 @@ function doReload(extra)
 		dofile(req .. ".lua")
 	end
 	for i, req in ipairs(dbotIncs) do
-    local fn = req .. ".lua"
-    local f = io.open(fn)
-    if f then
-      f:close()
-      dofile(fn)
-    end
+		local fn = req .. ".lua"
+		local f = io.open(fn)
+		if f then
+			f:close()
+			dofile(fn)
+		end
 	end
 	if extra then
 		assert(not extra:find("/", 1, true))
@@ -741,7 +741,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 		end
 		local lc = getCache('local:' .. (chan or nick or ''), true)
 		lc.lastmsgnick = nick
-    lc.lastmsg = msg
+		lc.lastmsg = msg
 		local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")
 		if ctcp then
 			if ctcp:upper() == "ACTION" then
@@ -935,18 +935,18 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 										return "sry I feel a little sick right now"
 									end,
 									function(x)
-                    if etc and etc.er then
-                      return etc.er(x)
-                    else
-                      return "omg, " .. x
-                    end
+					if etc and etc.er then
+						return etc.er(x)
+					else
+						return "omg, " .. x
+					end
 									end,
 									function()
-                    if etc and etc.rdef then
-                      return "ok, but isn't this interesting? " .. etc.rdef()
-                    else
-                      return "ok"
-                    end
+					if etc and etc.rdef then
+						return "ok, but isn't this interesting? " .. etc.rdef()
+					else
+						return "ok"
+					end
 									end,
 								}
 								local ch = [===[]====] .. ch .. [====[]===]
@@ -1000,9 +1000,9 @@ end
 
 dbotCronTimerResolution = 60 * 5
 dbotCronTimer = dbotCronTimer or Timer(dbotCronTimerResolution, function()
-  dbotRunSandboxHooked(ircclients[1], "$root", "$root", "etc.on_cron_timer();", function(env)
-    env.Event = { name = "cron_timer", cronTimerResolution = dbotCronTimerResolution }
-  end, 0, true)
+	dbotRunSandboxHooked(ircclients[1], "$root", "$root", "etc.on_cron_timer();", function(env)
+		env.Event = { name = "cron_timer", cronTimerResolution = dbotCronTimerResolution }
+	end, 0, true)
 end)
 dbotCronTimer:start()
 

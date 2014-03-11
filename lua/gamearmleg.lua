@@ -144,10 +144,10 @@ function calcSharesTotalPrice(symbol, count, other)
 			tmpShareCount = tmpShareCount - 1
 			tmpVcap = tmpVcap - curprice
 			local curfee = round(curprice * 2 / 100)
-      if other == 'auto' then
-        -- auto has no fees because it's on schedule via algorithm.
-        curfee = 0
-      end
+			if other == 'auto' then
+				-- auto has no fees because it's on schedule via algorithm.
+				curfee = 0
+			end
 			totvalue = totvalue + (curprice - curfee)
 			totfees = totfees + curfee
 		end
@@ -173,270 +173,270 @@ end
 
 
 function doAutoStockValue()
-  --[===[
-  print("---")
-  stockrnum = stockrnum + (internal.frandom(3) - 1)
-  if stockrnum < -2 then
-    stockrnum = -2
-  elseif stockrnum > 2 then
-    stockrnum = 2
-  end
-  -- stockrnum = stockrnum - internal.frandom(3)
-  print(" stockrnum = " .. stockrnum)
-  for symbol, stock in pairs(alData.stockdata) do
-    if 2 ~= internal.frandom(10) then -- 10% chance of no change.
-      local newB = stock.B
-      local rn = stockrnum + (internal.frandom(3) - 1)
-      -- if internal.frandom(100) < 20 then
-      -- 	rn = rn + (internal.frandom(5) - 2)
-      -- end
-      newB = newB + rn
-      newB = newB - internal.frandom(4)
-      if newB < 5 then
-        --if internal.frandom(100) < 30 then
-        --	newB = 5
-        --end
-        if newB < 1 then
-          newB = 1
-        end
-      elseif newB > 40 then
-        if internal.frandom(100) < 50 then
-          newB = 40
-        end
-        if newB > 50 then
-          newB = 50
-        end
-      end
-      if newB > 20 then
-        newB = newB - 1 - internal.frandom(4)
-      end
-      --[[
-      print(" - " .. symbol .. " B changing from " .. stock.B .. " to " .. newB
-        .. " ($" .. calcNextSharePrice(stock.vcap, stock.shareCount, stock.B)
-        .. " to $" .. calcNextSharePrice(stock.vcap, stock.shareCount, newB) .. ")"
-        )
-      --]]
-      stock.B = newB
-      alDirty = true
-      stocksDirty = true
-    end
-  end
-  --]===]
+	--[===[
+	print("---")
+	stockrnum = stockrnum + (internal.frandom(3) - 1)
+	if stockrnum < -2 then
+		stockrnum = -2
+	elseif stockrnum > 2 then
+		stockrnum = 2
+	end
+	-- stockrnum = stockrnum - internal.frandom(3)
+	print(" stockrnum = " .. stockrnum)
+	for symbol, stock in pairs(alData.stockdata) do
+		if 2 ~= internal.frandom(10) then -- 10% chance of no change.
+			local newB = stock.B
+			local rn = stockrnum + (internal.frandom(3) - 1)
+			-- if internal.frandom(100) < 20 then
+			-- 	rn = rn + (internal.frandom(5) - 2)
+			-- end
+			newB = newB + rn
+			newB = newB - internal.frandom(4)
+			if newB < 5 then
+				--if internal.frandom(100) < 30 then
+				--	newB = 5
+				--end
+				if newB < 1 then
+					newB = 1
+				end
+			elseif newB > 40 then
+				if internal.frandom(100) < 50 then
+					newB = 40
+				end
+				if newB > 50 then
+					newB = 50
+				end
+			end
+			if newB > 20 then
+				newB = newB - 1 - internal.frandom(4)
+			end
+			--[[
+			print(" - " .. symbol .. " B changing from " .. stock.B .. " to " .. newB
+				.. " ($" .. calcNextSharePrice(stock.vcap, stock.shareCount, stock.B)
+				.. " to $" .. calcNextSharePrice(stock.vcap, stock.shareCount, newB) .. ")"
+				)
+			--]]
+			stock.B = newB
+			alDirty = true
+			stocksDirty = true
+		end
+	end
+	--]===]
 end
 
 
 stockrnum = stockrnum or (internal.frandom(7) - 3)
 
 function doAutoBotTrades1()
-  print("---")
-  do
-    local inv={
-      --"ChesterInvestor","BuyAllStocks","StockMarketeer","NoFundsTrader","StockTraderJoe",
-      "TraderTraitor","AllYourStocks","BadDayTrader","ShortStock","SellsHigh",
-      };
-    local bb = internal.frandom(3) - 1
-    if 1 == internal.frandom(10) then
-      -- Every once in a while, buy like crazy:
-      bb = 2
-    end
-    print("bb = " .. bb)
-    for i, invnick in ipairs(inv) do
-      local cash = getUserCash(invnick)
-      local bbb = bb
-      --[[
-      if cash < 0 then
-        -- Prefer to sell if negative cash flow... ???
-        if bbb == 1 and 1 == internal.frandom(4) then
-          bbb = 0
-        end
-      end
-      --]]
-      for sym, stock in pairs(alData.stockdata) do
-        local nn = getUserStockCount(invnick, sym)
-        local nnT, _, nnTcount = getUserStockCount(invnick) -- All for this user.
-        local nnAll = getTotalStockCount(sym) -- All users.
-        -- if 1 == internal.frandom(2) then
-          bbb = bbb + internal.frandom(3) - 1
-          if nnT > (nnTcount - internal.frandom(2)) * 10 then
-            -- Always sell if I have more than syms*x in any shares.
-            bbb = -1
-          end
-          if bbb >= 1 then
-            if nn >= 5 and nn >= nnAll / 11 then
-              -- Don't own too many of total shares.
-              print(invnick .. " owns too many " .. sym)
-            else
-              directBuyShare(invnick, sym, 1, 'auto') -- Bypasses event log.
-              -- print(invnick .. " buys 1 " .. sym)
-              if log_event then
-                log_event("stock_trade_auto", invnick .. " buy 1 " .. sym)
-              end
-            end
-          elseif bbb <= -1 then
-            if directSellShare(invnick, sym, 1, 'auto')  then
-              -- print(invnick .. " sells 1 " .. sym)
-              if log_event then
-                log_event("stock_trade_auto", invnick .. " sell 1 " .. sym)
-              end
-            end
-          end
-        -- end
-      end
-    end
-  end
+	print("---")
+	do
+		local inv={
+			--"ChesterInvestor","BuyAllStocks","StockMarketeer","NoFundsTrader","StockTraderJoe",
+			"TraderTraitor","AllYourStocks","BadDayTrader","ShortStock","SellsHigh",
+			};
+		local bb = internal.frandom(3) - 1
+		if 1 == internal.frandom(10) then
+			-- Every once in a while, buy like crazy:
+			bb = 2
+		end
+		print("bb = " .. bb)
+		for i, invnick in ipairs(inv) do
+			local cash = getUserCash(invnick)
+			local bbb = bb
+			--[[
+			if cash < 0 then
+				-- Prefer to sell if negative cash flow... ???
+				if bbb == 1 and 1 == internal.frandom(4) then
+					bbb = 0
+				end
+			end
+			--]]
+			for sym, stock in pairs(alData.stockdata) do
+				local nn = getUserStockCount(invnick, sym)
+				local nnT, _, nnTcount = getUserStockCount(invnick) -- All for this user.
+				local nnAll = getTotalStockCount(sym) -- All users.
+				-- if 1 == internal.frandom(2) then
+					bbb = bbb + internal.frandom(3) - 1
+					if nnT > (nnTcount - internal.frandom(2)) * 10 then
+						-- Always sell if I have more than syms*x in any shares.
+						bbb = -1
+					end
+					if bbb >= 1 then
+						if nn >= 5 and nn >= nnAll / 11 then
+							-- Don't own too many of total shares.
+							print(invnick .. " owns too many " .. sym)
+						else
+							directBuyShare(invnick, sym, 1, 'auto') -- Bypasses event log.
+							-- print(invnick .. " buys 1 " .. sym)
+							if log_event then
+								log_event("stock_trade_auto", invnick .. " buy 1 " .. sym)
+							end
+						end
+					elseif bbb <= -1 then
+						if directSellShare(invnick, sym, 1, 'auto')  then
+							-- print(invnick .. " sells 1 " .. sym)
+							if log_event then
+								log_event("stock_trade_auto", invnick .. " sell 1 " .. sym)
+							end
+						end
+					end
+				-- end
+			end
+		end
+	end
 end
 
 
 if not alData.autobot2 then
-  -- This is for FIRST RUN only!
-  alData.autobot2 = {
-      gendir = 0,
-      genvol = 0,
-      gendirups = 0,
-      gendirdowns = 0,
-      traders = { },
-    }
+	-- This is for FIRST RUN only!
+	alData.autobot2 = {
+			gendir = 0,
+			genvol = 0,
+			gendirups = 0,
+			gendirdowns = 0,
+			traders = { },
+		}
 end
 --[[ -- Adding a trader:
-  local G = jesus or _G;
-  local newtrader = "BearBuy";
-  G.alData.autobot2.traders[newtrader] = {};
-  G.getUserAccount(newtrader .. "!inv@inv2.bot.bot", true);
+	local G = jesus or _G;
+	local newtrader = "BearBuy";
+	G.alData.autobot2.traders[newtrader] = {};
+	G.getUserAccount(newtrader .. "!inv@inv2.bot.bot", true);
 --]]
 
 function doAutoBotTrades2()
-  print("---")
-  local autobot2 = alData.autobot2
-  -- General direction (up or down).
-  local dirupperlimit = 3
-  local dirlowerlimit = -dirupperlimit
-  autobot2.gendir = autobot2.gendir + (internal.frandom(5) - 2)
-  autobot2.gendir = math.min(autobot2.gendir, dirupperlimit)
-  autobot2.gendir = math.max(autobot2.gendir, dirlowerlimit)
-  -- General volume (how many shares to buy/sell at once).
-  local volupperlimit = 2
-  local vollowerlimit = 0
-  autobot2.genvol = autobot2.genvol + (internal.frandom(3) - 1)
-  autobot2.genvol = math.min(autobot2.genvol, volupperlimit)
-  autobot2.genvol = math.max(autobot2.genvol, vollowerlimit)
-  -- Slight chances of rapid change:
-  local rr = internal.frandom(100)
-  if rr == 51 then
-    autobot2.gendir = -autobot2.gendir
-    autobot2.genvol = -autobot2.genvol
-  elseif rr == 52 then
-    autobot2.gendir = dirupperlimit
-    autobot2.genvol = 0
-  elseif rr == 53 then
-    autobot2.gendir = dirlowerlimit
-    autobot2.genvol = 0
-  elseif rr == 54 then
-    autobot2.gendir = math.random(dirlowerlimit, dirupperlimit)
-    autobot2.genvol = math.random(vollowerlimit, volupperlimit)
-  end
-  -- gendirup/gendirdown just keeps track of how many times in the direction.
-  if autobot2.gendir > 0 then
-    autobot2.gendirups = autobot2.gendirups + 1
-  elseif autobot2.gendir < 0 then
-    autobot2.gendirdowns = autobot2.gendirdowns + 1
-  end
-  --
-  for sym, stock in pairs(alData.stockdata) do
-    for tradername, trader in pairs(autobot2.traders) do
-      local x = trader[sym]
-      if not x then
-        x = {}
-        trader[sym] = x
-      end
-      -- If a field isn't set, init to negative gen so they start neutral.
-      x.dir = (x.dir or -autobot2.gendir) + (internal.frandom(5) - 2)
-      x.dir = math.min(x.dir, dirupperlimit)
-      x.dir = math.max(x.dir, dirlowerlimit)
-      x.vol = (x.vol or -autobot2.genvol) + (internal.frandom(3) - 1)
-      x.vol = math.min(x.vol, volupperlimit)
-      x.vol = math.max(x.vol, vollowerlimit)
-      -- Slight chances of rapid change per trader sym:
-      local rrx = internal.frandom(100)
-      if rrx == 51 then
-        x.dir = -x.dir
-        x.vol = -x.vol
-      elseif rrx == 52 then
-        x.dir = 5
-        x.vol = 0
-      elseif rrx == 53 then
-        x.dir = -5
-        x.vol = 0
-      elseif rrx == 54 then
-        x.dir = math.random(dirlowerlimit, dirupperlimit)
-        x.vol = math.random(vollowerlimit, volupperlimit)
-      end
-      -- Now do a total calculation for buy/sell this sym right now:
-      local thisdir = autobot2.gendir + x.dir
-      thisdir = math.min(thisdir, dirupperlimit)
-      thisdir = math.max(thisdir, dirlowerlimit)
-      local thisvol = autobot2.genvol + x.vol
-      thisvol = math.min(thisvol, volupperlimit)
-      thisvol = math.max(thisvol, vollowerlimit)
-      local mintrades = math.random(5, 15)
-      if thisvol > 0 then
-        if thisdir > 0 then
-          -- Buy!
-          local thisdirmoves = (x.dirdowns or 0) - (x.dirups or 0)
-          if thisdirmoves > internal.frandom(30) then
-            thisvol = (thisvol * 2) + math.ceil(thisdirmoves / 5)
-            x.dirups = math.floor((x.dirups or 0) / 100 * 85)
-            x.dirdowns = math.floor((x.dirdowns or 0) / 100 * 65) -- Cut down downs more.
-          end
-          thisvol = math.min(thisvol, 30)
-          x.outs = (x.outs or 0) + thisvol -- Outstanding buy/sell, negative for sell.
-          x.outs = math.min(x.outs, 50)
-          if x.outs >= mintrades then
-            local n = directBuyShare(tradername, sym, x.outs, 'auto')
-            if n and n > 0 then
-              x.outs = 0
-              log_event("stock_trade_auto", tradername .. " buy " .. n .. " " .. sym)
-            end
-          end
-          x.dirups = (x.dirups or 0) + 1 -- New dirups.
-        elseif thisdir < 0 then
-          -- Sell!
-          local thisdirmoves = (x.dirups or 0) - (x.dirdowns or 0)
-          if thisdirmoves > internal.frandom(30) then
-            thisvol = (thisvol * 2) + math.ceil(thisdirmoves / 5)
-            x.dirups = math.floor((x.dirups or 0) / 100 * 65) -- Cut down ups more.
-            x.dirdowns = math.floor((x.dirdowns or 0) / 100 * 85)
-          end
-          thisvol = math.min(thisvol, 30)
-          x.outs = (x.outs or 0) - thisvol -- Outstanding buy/sell, negative for sell.
-          x.outs = math.max(x.outs, -50)
-          if x.outs <= -mintrades then
-            local n = directSellShare(tradername, sym, -x.outs, 'auto')
-            if n and n > 0 then
-              x.outs = 0
-              log_event("stock_trade_auto", tradername .. " sell " .. n .. " " .. sym)
-            end
-          end
-          x.dirdowns = (x.dirdowns or 0) + 1 -- New dirdowns.
-        end
-      end
-    end
-  end
-  alDirty = true
+	print("---")
+	local autobot2 = alData.autobot2
+	-- General direction (up or down).
+	local dirupperlimit = 3
+	local dirlowerlimit = -dirupperlimit
+	autobot2.gendir = autobot2.gendir + (internal.frandom(5) - 2)
+	autobot2.gendir = math.min(autobot2.gendir, dirupperlimit)
+	autobot2.gendir = math.max(autobot2.gendir, dirlowerlimit)
+	-- General volume (how many shares to buy/sell at once).
+	local volupperlimit = 2
+	local vollowerlimit = 0
+	autobot2.genvol = autobot2.genvol + (internal.frandom(3) - 1)
+	autobot2.genvol = math.min(autobot2.genvol, volupperlimit)
+	autobot2.genvol = math.max(autobot2.genvol, vollowerlimit)
+	-- Slight chances of rapid change:
+	local rr = internal.frandom(100)
+	if rr == 51 then
+		autobot2.gendir = -autobot2.gendir
+		autobot2.genvol = -autobot2.genvol
+	elseif rr == 52 then
+		autobot2.gendir = dirupperlimit
+		autobot2.genvol = 0
+	elseif rr == 53 then
+		autobot2.gendir = dirlowerlimit
+		autobot2.genvol = 0
+	elseif rr == 54 then
+		autobot2.gendir = math.random(dirlowerlimit, dirupperlimit)
+		autobot2.genvol = math.random(vollowerlimit, volupperlimit)
+	end
+	-- gendirup/gendirdown just keeps track of how many times in the direction.
+	if autobot2.gendir > 0 then
+		autobot2.gendirups = autobot2.gendirups + 1
+	elseif autobot2.gendir < 0 then
+		autobot2.gendirdowns = autobot2.gendirdowns + 1
+	end
+	--
+	for sym, stock in pairs(alData.stockdata) do
+		for tradername, trader in pairs(autobot2.traders) do
+			local x = trader[sym]
+			if not x then
+				x = {}
+				trader[sym] = x
+			end
+			-- If a field isn't set, init to negative gen so they start neutral.
+			x.dir = (x.dir or -autobot2.gendir) + (internal.frandom(5) - 2)
+			x.dir = math.min(x.dir, dirupperlimit)
+			x.dir = math.max(x.dir, dirlowerlimit)
+			x.vol = (x.vol or -autobot2.genvol) + (internal.frandom(3) - 1)
+			x.vol = math.min(x.vol, volupperlimit)
+			x.vol = math.max(x.vol, vollowerlimit)
+			-- Slight chances of rapid change per trader sym:
+			local rrx = internal.frandom(100)
+			if rrx == 51 then
+				x.dir = -x.dir
+				x.vol = -x.vol
+			elseif rrx == 52 then
+				x.dir = 5
+				x.vol = 0
+			elseif rrx == 53 then
+				x.dir = -5
+				x.vol = 0
+			elseif rrx == 54 then
+				x.dir = math.random(dirlowerlimit, dirupperlimit)
+				x.vol = math.random(vollowerlimit, volupperlimit)
+			end
+			-- Now do a total calculation for buy/sell this sym right now:
+			local thisdir = autobot2.gendir + x.dir
+			thisdir = math.min(thisdir, dirupperlimit)
+			thisdir = math.max(thisdir, dirlowerlimit)
+			local thisvol = autobot2.genvol + x.vol
+			thisvol = math.min(thisvol, volupperlimit)
+			thisvol = math.max(thisvol, vollowerlimit)
+			local mintrades = math.random(5, 15)
+			if thisvol > 0 then
+				if thisdir > 0 then
+					-- Buy!
+					local thisdirmoves = (x.dirdowns or 0) - (x.dirups or 0)
+					if thisdirmoves > internal.frandom(30) then
+						thisvol = (thisvol * 2) + math.ceil(thisdirmoves / 5)
+						x.dirups = math.floor((x.dirups or 0) / 100 * 85)
+						x.dirdowns = math.floor((x.dirdowns or 0) / 100 * 65) -- Cut down downs more.
+					end
+					thisvol = math.min(thisvol, 30)
+					x.outs = (x.outs or 0) + thisvol -- Outstanding buy/sell, negative for sell.
+					x.outs = math.min(x.outs, 50)
+					if x.outs >= mintrades then
+						local n = directBuyShare(tradername, sym, x.outs, 'auto')
+						if n and n > 0 then
+							x.outs = 0
+							log_event("stock_trade_auto", tradername .. " buy " .. n .. " " .. sym)
+						end
+					end
+					x.dirups = (x.dirups or 0) + 1 -- New dirups.
+				elseif thisdir < 0 then
+					-- Sell!
+					local thisdirmoves = (x.dirups or 0) - (x.dirdowns or 0)
+					if thisdirmoves > internal.frandom(30) then
+						thisvol = (thisvol * 2) + math.ceil(thisdirmoves / 5)
+						x.dirups = math.floor((x.dirups or 0) / 100 * 65) -- Cut down ups more.
+						x.dirdowns = math.floor((x.dirdowns or 0) / 100 * 85)
+					end
+					thisvol = math.min(thisvol, 30)
+					x.outs = (x.outs or 0) - thisvol -- Outstanding buy/sell, negative for sell.
+					x.outs = math.max(x.outs, -50)
+					if x.outs <= -mintrades then
+						local n = directSellShare(tradername, sym, -x.outs, 'auto')
+						if n and n > 0 then
+							x.outs = 0
+							log_event("stock_trade_auto", tradername .. " sell " .. n .. " " .. sym)
+						end
+					end
+					x.dirdowns = (x.dirdowns or 0) + 1 -- New dirdowns.
+				end
+			end
+		end
+	end
+	alDirty = true
 end
 
 
 function stockTimerFunc()
-  -- On average once every 15 mins...
+	-- On average once every 15 mins...
 	if 1 == internal.frandom(15) then
-    doAutoStockValue()
-    doAutoBotTrades1()
-    print("---")
-  end
-  -- On average once every 22 mins...
+		doAutoStockValue()
+		doAutoBotTrades1()
+		print("---")
+	end
+	-- On average once every 22 mins...
 	if 1 == internal.frandom(22) then
-    doAutoBotTrades2()
-    print("---")
-  end
+		doAutoBotTrades2()
+		print("---")
+	end
 	--  NOTE: THIS MUST RUN...
 	-- Save current stock values if dirty...
 	if stocksDirty then
@@ -2016,11 +2016,11 @@ end
 function addGoodBjPlayer(bj)
 	local splayer = bjAddPlayer(bj, specialGoodBjPlayer)
 	splayer.special = "good"
-  --[[
+	--[[
 	splayer.bet = math.floor(maxBjBet(splayer.nick) / (internal.frandom(4) + 1))
 	if splayer.bet < 25 then splayer.bet = 25 end
 	--]]
-  splayer.bet = bj.players[1].bet or 25
+	splayer.bet = bj.players[1].bet or 25
 	return splayer
 end
 
@@ -2956,21 +2956,21 @@ function addTrade(nick, symbol, count, force)
 		table.insert(tinfo, utinfo)
 	end
 	utinfo.count = utinfo.count + count
-  utinfo.force = force
-  
-  if log_event then
-    if os.time() - lastValuesEventLog > 60 * 5 then
-      log_event("stock_values", table.concat(getStockValuesTable(), ", "))
-      lastValuesEventLog = os.time()
-    end
-    local lwhat
-    if count > 0 then
-      lwhat = " buy " .. count .. " "
-    elseif count < 0 then
-      lwhat = " sell " .. (-count) .. " "
-    end
-    log_event("stock_trade_init", nick .. lwhat .. symbol)
-  end
+	utinfo.force = force
+	
+	if log_event then
+		if os.time() - lastValuesEventLog > 60 * 5 then
+			log_event("stock_values", table.concat(getStockValuesTable(), ", "))
+			lastValuesEventLog = os.time()
+		end
+		local lwhat
+		if count > 0 then
+			lwhat = " buy " .. count .. " "
+		elseif count < 0 then
+			lwhat = " sell " .. (-count) .. " "
+		end
+		log_event("stock_trade_init", nick .. lwhat .. symbol)
+	end
 end
 
 --[[
@@ -3045,7 +3045,7 @@ tradeTimer = Timer(tradeTimerInterval, function()
 							print(tinfo.nick, utinfo.sym, b)
 						else
 							utinfo.count = utinfo.count - 1
-              utinfo.count_done = (utinfo.count_done or 0) + 1
+							utinfo.count_done = (utinfo.count_done or 0) + 1
 							amount = c
 						end
 					end
@@ -3058,27 +3058,27 @@ tradeTimer = Timer(tradeTimerInterval, function()
 						print(tinfo.nick, utinfo.sym, b)
 					else
 						utinfo.count = utinfo.count + 1
-            utinfo.count_done = (utinfo.count_done or 0) - 1
+						utinfo.count_done = (utinfo.count_done or 0) - 1
 						amount = c
 					end
 					assert(utinfo.count <= 0)
 				end
 				if utinfo.count == 0 then
 					table.remove(tinfo, utinfoindex)
-          
-          if log_event and utinfo.count_done then
-              if log_event then
-              local lwhat
-              if utinfo.count_done > 0 then
-                lwhat = " buy " .. utinfo.count_done .. " "
-              elseif utinfo.count_done < 0 then
-                lwhat = " sell " .. (-utinfo.count_done) .. " "
-              else
-                lwhat = "N/A"
-              end
-              log_event("stock_trade_done", tinfo.nick .. lwhat .. utinfo.sym)
-            end
-          end
+					
+					if log_event and utinfo.count_done then
+							if log_event then
+							local lwhat
+							if utinfo.count_done > 0 then
+								lwhat = " buy " .. utinfo.count_done .. " "
+							elseif utinfo.count_done < 0 then
+								lwhat = " sell " .. (-utinfo.count_done) .. " "
+							else
+								lwhat = "N/A"
+							end
+							log_event("stock_trade_done", tinfo.nick .. lwhat .. utinfo.sym)
+						end
+					end
 				end
 				if #tinfo == 0 then
 					table.remove(_trades, _lastTradeIndex)
@@ -3246,21 +3246,21 @@ end
 
 
 function botstockValues()
-  local t = {}
-  for sym, stock in pairs(alData.stockdata) do
-    t[sym] = round(calcNextSharePrice(stock.vcap, stock.shareCount, stock.B))
-  end
-  return t
+	local t = {}
+	for sym, stock in pairs(alData.stockdata) do
+		t[sym] = round(calcNextSharePrice(stock.vcap, stock.shareCount, stock.B))
+	end
+	return t
 end
 
 
 function getStockValuesTable()
-  local t = {}
-  for symbol, stock in pairs(alData.stockdata) do
+	local t = {}
+	for symbol, stock in pairs(alData.stockdata) do
 		t[#t + 1] = symbol .. " at $" .. round(calcNextSharePrice(stock.vcap, stock.shareCount, stock.B))
 	end
-  table.sort(t)
-  return t
+	table.sort(t)
+	return t
 end
 
 
@@ -4020,21 +4020,21 @@ armleghelp.help = "Get help on all the built-in games and related commands"
 botExpectChannelBotCommand("$help", function(state, client, sender, target, cmd, args)
 	-- local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
-  local s = args
-  if s and s:sub(1, 1) == armlegcmdchar then
-    s = s:sub(2)
-  end
-  if s and s ~= "" then
-    local r = armleghelp[s]
-    if not r then
-      client:sendMsg(chan, "Game command $" .. s .. " not found or does not have help")
-      return
-    end
-    client:sendMsg(chan, "$" .. s .. " help: " .. r)
-    return
-  else
-    client:sendMsg(chan, "My commands are: $blackjack $flip $give $rock $paper $scissors $roulette $stats $slots $jackpot $draw $=", "armlegHelp")
-  end
+	local s = args
+	if s and s:sub(1, 1) == armlegcmdchar then
+		s = s:sub(2)
+	end
+	if s and s ~= "" then
+		local r = armleghelp[s]
+		if not r then
+			client:sendMsg(chan, "Game command $" .. s .. " not found or does not have help")
+			return
+		end
+		client:sendMsg(chan, "$" .. s .. " help: " .. r)
+		return
+	else
+		client:sendMsg(chan, "My commands are: $blackjack $flip $give $rock $paper $scissors $roulette $stats $slots $jackpot $draw $=", "armlegHelp")
+	end
 end)
 
 
