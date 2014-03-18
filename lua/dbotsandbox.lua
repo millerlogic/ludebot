@@ -191,15 +191,15 @@ function wrapDbotSandboxFS(user, fullUserAccess)
 				_fso = getDbotUserFSO(user)
 			end
 			if not fullUserAccess then
-        local prevPermission = _fso:getProvider().permission
+			local prevPermission = _fso:getProvider().permission
 				_fso:setProvider(createRestrictedProvider(_fso:getProvider(), function(res, flag, uid)
 					if flag == 'l' or flag == 'q' then
 						return true
 					end
-          if flag == 'r' then
-            -- Want to grant things like read to /user/<name>/pub/*
-            return prevPermission(_fso:getProvider(), res, flag, uid)
-          end
+					if flag == 'r' then
+						-- Want to grant things like read to /user/<name>/pub/*
+						return prevPermission(_fso:getProvider(), res, flag, uid)
+					end
 					return false
 				end))
 			end
@@ -344,17 +344,17 @@ function worth(who)
 	local cash = cash(who)
 	local gtotal = 0
 	if calcSharesTotalPrice then
-        local ustocks
-        if alData and alData.userstocks then
-            ustocks = alData.userstocks[who:lower()]
-        end
-        if ustocks then
-            for k, v in pairs(ustocks) do
-                local x = calcSharesTotalPrice(k, v.count)
-                gtotal = gtotal + x
-            end
-        end
-    end
+		local ustocks
+		if alData and alData.userstocks then
+			ustocks = alData.userstocks[who:lower()]
+		end
+		if ustocks then
+			for k, v in pairs(ustocks) do
+				local x = calcSharesTotalPrice(k, v.count)
+				gtotal = gtotal + x
+			end
+		end
+	end
 	return math.floor(cash + gtotal)
 end
 
@@ -366,13 +366,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	local envprint
 	local errprint
 	local dest = chan or nick
-  local safeenv = {}
-  local protectnames = {
-    "tostring","tonumber","assert","error","pairs",
-    "ipairs","next","pcall","rawget","rawset","select",
-    "setmetatable","getmetatable","type","unpack","require",
-    "halt", "saferandom", "_threadid",
-  }
+	local safeenv = {}
+	local protectnames = {
+		"tostring","tonumber","assert","error","pairs",
+		"ipairs","next","pcall","rawget","rawset","select",
+		"setmetatable","getmetatable","type","unpack","require",
+		"halt", "saferandom", "_threadid",
+	}
 	local env = {}
 	local renv = {} -- Current run env.
 	local cansingleprint = true
@@ -390,9 +390,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			error("Exhausted{E6A0C4BD-75DC-4313-A1AF-7666ED28545B}")
 		end
 	end
-  local hlp = {}
-  local LocalCache = getCache('local:' .. (dest or ''), true)
-  local AllPrivate = {} -- Indexed by account ID.
+	local hlp = {}
+	local LocalCache = getCache('local:' .. (dest or ''), true)
+	local AllPrivate = {} -- Indexed by account ID.
 
 	-- G might be renv or fenv.
 	local function gpairs(G)
@@ -429,186 +429,186 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return acct.id
 		end
 	end
-  
-  local function loadstringAsUser(code, name, finfo)
-    local f, err = loadstring(" \t " .. code .. " \t ", name)
-    if not f then
-      return nil, err
-    end
-    
-    local fenv = {}
-    fenv._G = fenv
-    fenv._funcname = name
-    fenv.nick = nick -- Ensure the caller can't modify this.
-    fenv.account = nickaccount -- Same idea.
-    fenv.getuid = sbgetuid -- Same idea.
-    for i, k in ipairs(protectnames) do
-      -- Other protected names which have no business being overridden.
-      fenv[k] = assert(safeenv[k])
-    end
-    fenv.chan = chan
-    fenv.dest = dest
-    -- fenv.iscmd = false
-    if fenv.Input then
-      fenv.Input.iscmd = fenv.Input._set_iscmd
-      fenv.Input._set_iscmd = nil
-    end
-    fenv.directprint = envprint
-    local fs = wrapDbotSandboxFS(nickFromSource(finfo.faddr), true)
-    fenv.io = fsToIO(fs, _clonetable(renv.io))
-    fenv.os = fsToOS(fs, _clonetable(renv.os))
-    fenv.getUserFS = function(n)
-      local fso = getDbotFSO(finfo.acctID, getname, n)
-      local a, b = fso:chroot("/user/" .. n:lower())
-      if not a then
-        return a, b
-      end
-      fso:cd("/home")
-      return wrapDbotSandboxFS(fso)
-    end
-    fenv.getRootFS = function()
-      if finfo.acctID == 1 then
-        return wrapDbotSandboxFS(getDbotUserRootFSO(finfo.acctID, getname), true)
-      end
-      return nil, "Disabled"
-    end
-    fenv.reenter = function(...)
-      return fenv.reenterFunc(name, ...)
-    end
-    fenv._setTopic = function(t)
-      if finfo.acctID == 1 then
-        client:sendLine("TOPIC " .. dest .. " :" .. safeString(t))
-        return true
-      end
-      return nil, "Permission denied"
-    end
-    fenv.safeloadstring = function(src, name)
-      local a, b = renv.loadstring(src, name)
-      if a then
-        local xenv = {}
-        xenv._G = xenv
-        setfenv(a, xenv)
-        return a
-      end
-      return a, b
-    end
-    -- fenv.loadstring = fenv.safeloadstring
-    fenv.loadstring = renv.guestloadstring
-    fenv.unsafeloadstring = function(src, name)
-      local a, b = renv.loadstring(src, name)
-      if a then
-        setfenv(a, fenv)
-        return a
-      end
-      return a, b
-    end
-    fenv.godloadstring = function(src, name)
-      if finfo.acctID == 1 then
-        return renv.loadstring(src, name)
-      else
-        return nil, "Permission denied"
-      end
-    end
-    fenv.eval = function(s)
-      local f, err = fenv.loadstring("return " .. s)
-      if not f then
-        error(err)
-      end
-      return f()
-    end
-    fenv.owner = function(x, ...)
-      if not x then
-        return finfo.acctID
-      end
-      return env.owner(x, ...)
-    end
-    fenv.ucharge = function(amount, from, to)
-      if not to then
-        to = "$bank"
-      end
-      assert(type(amount) == "number", "Invalid cash amount")
-      assert(type(from) == "string" and type(to) == "string", "Invalid nickname provided")
-      to = to:lower()
-      from = from:lower()
-      if from == "$bank" or to == "$bank" then
-        if from == "$bank" then
-          amount = -amount
-          from, to = to, from
-        end
-        -- bank is always 'to' now (if it was 'from', it's to negative now)
-        -- assert(amount < 50, "Bank cannot charge more than $50")
-      else
-        --[[ -- This doesn't work if used via web.
-        if chan then
-          local so = findSeen(client:network(), chan, to)
-          if (not so or (os.time() - so.t) > 60 * 2) and to:lower() ~= nick:lower() then
-            error("Cannot charge inactive user " .. to, 0)
-          end
-          so = findSeen(client:network(), chan, from)
-          if (not so or (os.time() - so.t) > 60 * 2) and from:lower() ~= nick:lower() then
-            error("Cannot charge inactive user " .. from, 0)
-          end
-        else
-          -- Note: this will never succeed.. unless charging himself?
-          if to:lower() ~= nick:lower() then
-            error("Cannot charge inactive user " .. to, 0)
-          end
-          if from:lower() ~= nick:lower() then
-            error("Cannot charge inactive user " .. from, 0)
-          end
-        end
-        --]]
-      end
-      assert(amount >= -1000 and amount <= 1000, "Cannot charge more than $1000")
-      local now = os.time()
-      local cc = getCache("$ucharge", true)
-      if (cc[to] or 0) > now - 1 or (cc[from] or 0) > now - 1 then
-        error("User has already been charged")
-      end
-      local currency = getname(finfo.acctID)
-      print("ucharge", "currency=" .. tostring(currency), amount, from, to)
-      ensureExchange(currency)
-      local result = giveExchangeCash(currency, to, amount, from)
-      if to ~= "$bank" then
-        cc[to] = now
-      end
-      if from ~= "$bank" then
-        cc[from] = now
-      end
-      return result
-    end
-    fenv.ucash = function(who, currency)
-      return getExchangeCash(currency or getname(finfo.acctID), who)
-    end
-    fenv.ucashInfo = function(x)
-      return getExchangeInfo(x or getname(finfo.acctID))
-    end
-    fenv.ucashGive = function(amount, to, from)
-      return fenv.ucharge(-amount, to, from)
-    end
-    fenv.Cache = getUserCache(nickFromSource(finfo.faddr), true)
-    if finfo.acctID and not AllPrivate[finfo.acctID] then
-      AllPrivate[finfo.acctID] = {}
-    end
-    fenv.Private = AllPrivate[finfo.acctID] or {}
-    -- assert(fenv.Cache, "No cache for " .. nickFromSource(finfo.faddr))
-    fenv.seed = internal.frandom()
-    local fenvMT = { __index = env, __newindex = env, __pairs = gpairs }
-    setmetatable(fenv, fenvMT)
-    setfenv(f, fenv) -- Important!
-    if not owners then
-      owners = {}
-    end
-    -- owners[f] = finfo.acctID
-    owners[f] = finfo
-    return f, fenv
-  end
-  
-  local function loadstringAsGuest(code, name)
-    local guestnick = "$guest"
-    local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.guest", true)) -- demand
-    return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
-  end
+	
+	local function loadstringAsUser(code, name, finfo)
+		local f, err = loadstring(" \t " .. code .. " \t ", name)
+		if not f then
+			return nil, err
+		end
+		
+		local fenv = {}
+		fenv._G = fenv
+		fenv._funcname = name
+		fenv.nick = nick -- Ensure the caller can't modify this.
+		fenv.account = nickaccount -- Same idea.
+		fenv.getuid = sbgetuid -- Same idea.
+		for i, k in ipairs(protectnames) do
+			-- Other protected names which have no business being overridden.
+			fenv[k] = assert(safeenv[k])
+		end
+		fenv.chan = chan
+		fenv.dest = dest
+		-- fenv.iscmd = false
+		if fenv.Input then
+			fenv.Input.iscmd = fenv.Input._set_iscmd
+			fenv.Input._set_iscmd = nil
+		end
+		fenv.directprint = envprint
+		local fs = wrapDbotSandboxFS(nickFromSource(finfo.faddr), true)
+		fenv.io = fsToIO(fs, _clonetable(renv.io))
+		fenv.os = fsToOS(fs, _clonetable(renv.os))
+		fenv.getUserFS = function(n)
+			local fso = getDbotFSO(finfo.acctID, getname, n)
+			local a, b = fso:chroot("/user/" .. n:lower())
+			if not a then
+				return a, b
+			end
+			fso:cd("/home")
+			return wrapDbotSandboxFS(fso)
+		end
+		fenv.getRootFS = function()
+			if finfo.acctID == 1 then
+				return wrapDbotSandboxFS(getDbotUserRootFSO(finfo.acctID, getname), true)
+			end
+			return nil, "Disabled"
+		end
+		fenv.reenter = function(...)
+			return fenv.reenterFunc(name, ...)
+		end
+		fenv._setTopic = function(t)
+			if finfo.acctID == 1 then
+				client:sendLine("TOPIC " .. dest .. " :" .. safeString(t))
+				return true
+			end
+			return nil, "Permission denied"
+		end
+		fenv.safeloadstring = function(src, name)
+			local a, b = renv.loadstring(src, name)
+			if a then
+				local xenv = {}
+				xenv._G = xenv
+				setfenv(a, xenv)
+				return a
+			end
+			return a, b
+		end
+		-- fenv.loadstring = fenv.safeloadstring
+		fenv.loadstring = renv.guestloadstring
+		fenv.unsafeloadstring = function(src, name)
+			local a, b = renv.loadstring(src, name)
+			if a then
+				setfenv(a, fenv)
+				return a
+			end
+			return a, b
+		end
+		fenv.godloadstring = function(src, name)
+			if finfo.acctID == 1 then
+				return renv.loadstring(src, name)
+			else
+				return nil, "Permission denied"
+			end
+		end
+		fenv.eval = function(s)
+			local f, err = fenv.loadstring("return " .. s)
+			if not f then
+				error(err)
+			end
+			return f()
+		end
+		fenv.owner = function(x, ...)
+			if not x then
+				return finfo.acctID
+			end
+			return env.owner(x, ...)
+		end
+		fenv.ucharge = function(amount, from, to)
+			if not to then
+				to = "$bank"
+			end
+			assert(type(amount) == "number", "Invalid cash amount")
+			assert(type(from) == "string" and type(to) == "string", "Invalid nickname provided")
+			to = to:lower()
+			from = from:lower()
+			if from == "$bank" or to == "$bank" then
+				if from == "$bank" then
+					amount = -amount
+					from, to = to, from
+				end
+				-- bank is always 'to' now (if it was 'from', it's to negative now)
+				-- assert(amount < 50, "Bank cannot charge more than $50")
+			else
+				--[[ -- This doesn't work if used via web.
+				if chan then
+					local so = findSeen(client:network(), chan, to)
+					if (not so or (os.time() - so.t) > 60 * 2) and to:lower() ~= nick:lower() then
+						error("Cannot charge inactive user " .. to, 0)
+					end
+					so = findSeen(client:network(), chan, from)
+					if (not so or (os.time() - so.t) > 60 * 2) and from:lower() ~= nick:lower() then
+						error("Cannot charge inactive user " .. from, 0)
+					end
+				else
+					-- Note: this will never succeed.. unless charging himself?
+					if to:lower() ~= nick:lower() then
+						error("Cannot charge inactive user " .. to, 0)
+					end
+					if from:lower() ~= nick:lower() then
+						error("Cannot charge inactive user " .. from, 0)
+					end
+				end
+				--]]
+			end
+			assert(amount >= -1000 and amount <= 1000, "Cannot charge more than $1000")
+			local now = os.time()
+			local cc = getCache("$ucharge", true)
+			if (cc[to] or 0) > now - 1 or (cc[from] or 0) > now - 1 then
+				error("User has already been charged")
+			end
+			local currency = getname(finfo.acctID)
+			print("ucharge", "currency=" .. tostring(currency), amount, from, to)
+			ensureExchange(currency)
+			local result = giveExchangeCash(currency, to, amount, from)
+			if to ~= "$bank" then
+				cc[to] = now
+			end
+			if from ~= "$bank" then
+				cc[from] = now
+			end
+			return result
+		end
+		fenv.ucash = function(who, currency)
+			return getExchangeCash(currency or getname(finfo.acctID), who)
+		end
+		fenv.ucashInfo = function(x)
+			return getExchangeInfo(x or getname(finfo.acctID))
+		end
+		fenv.ucashGive = function(amount, to, from)
+			return fenv.ucharge(-amount, to, from)
+		end
+		fenv.Cache = getUserCache(nickFromSource(finfo.faddr), true)
+		if finfo.acctID and not AllPrivate[finfo.acctID] then
+			AllPrivate[finfo.acctID] = {}
+		end
+		fenv.Private = AllPrivate[finfo.acctID] or {}
+		-- assert(fenv.Cache, "No cache for " .. nickFromSource(finfo.faddr))
+		fenv.seed = internal.frandom()
+		local fenvMT = { __index = env, __newindex = env, __pairs = gpairs }
+		setmetatable(fenv, fenvMT)
+		setfenv(f, fenv) -- Important!
+		if not owners then
+			owners = {}
+		end
+		-- owners[f] = finfo.acctID
+		owners[f] = finfo
+		return f, fenv
+	end
+	
+	local function loadstringAsGuest(code, name)
+		local guestnick = "$guest"
+		local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.guest", true)) -- demand
+		return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
+	end
 
 	--if acct then
 	--	env.Cache = getUserCache(nick, true)
@@ -624,13 +624,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		local m = {}
 		local modname = modinfo.name
 		env[modname] = m
-    hlp[modname] = "Module " .. modname .. " - " .. (modinfo.desc or 'Information not available')
+		hlp[modname] = "Module " .. modname .. " - " .. (modinfo.desc or 'Information not available')
 		if modname == "etc" then
 			m.cmdchar = "'"
 		end
-    m.cmdprefix = m.cmdchar or ("'" .. modname .. ".")
+		m.cmdprefix = m.cmdchar or ("'" .. modname .. ".")
 		m.findFunc = function(pat, want, orig)
-      assert(type(pat) == "string", "Pattern string expected")
+			assert(type(pat) == "string", "Pattern string expected")
 			local udf = dbotData["udf"]
 			local m = udf[modname]
 			local t = {}
@@ -676,8 +676,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				return result
 			end
 		end
-    m.find = function(s, what)
-      assert(type(s) == "string", "Wildcard string expected")
+		m.find = function(s, what)
+			assert(type(s) == "string", "Wildcard string expected")
 			if s:sub(1, 1) == '"' and s:sub(-1) == '"' then
 				s = s:sub(2, -2)
 			else
@@ -689,52 +689,52 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				end
 			end
 			local pat = globToLuaPattern(s, true)
-      return m.findFunc(pat, what or false, s)
-    end
+			return m.findFunc(pat, what or false, s)
+		end
 		setmetatable(m, {
 			__index = function(t, k)
 				local finfo = getUdfInfo(modname, k)
 				if finfo then
 					local fcode, err = loadUdfCode(finfo)
-          local fname = modname .. "." .. k
+					local fname = modname .. "." .. k
 					if not fcode then
 						print(fname, err)
 						error("Fatal error loading function " .. fname, 0)
 					end
 					local f, fenv = loadstringAsUser("local arg={...}; \t " .. fcode, fname, finfo)
-          if f then
-            rawset(t, k, f) -- Cache it for this sandbox.
-            incUdfUsage(finfo)
-            -- if not callcache then
-            -- 	callcache = createCache()
-            -- end
-            if callcache then
-              callcache[fname] = true
-            end
-          else
-            error("Unable to load " .. fname  .. ": " .. tostring(fenv))
-          end
-          return f
+					if f then
+						rawset(t, k, f) -- Cache it for this sandbox.
+						incUdfUsage(finfo)
+						-- if not callcache then
+						-- 	callcache = createCache()
+						-- end
+						if callcache then
+							callcache[fname] = true
+						end
+					else
+						error("Unable to load " .. fname  .. ": " .. tostring(fenv))
+					end
+					return f
 				end
 			end
 		})
 	end
 	env.arg = {}
-  hlp.Cache = "Cache local to your account; restricted to simple data types and has size and time limitations"
+	hlp.Cache = "Cache local to your account; restricted to simple data types and has size and time limitations"
 	env.Cache = getUserCache(nick, true)
-  hlp.Private = "A table with private data, unreadable by other users. Note that this data is not persisted, but it is shared between any functions owned by you called in the same thread."
-  if account then
-    AllPrivate[account] = {}
-  end
-  env.Private = AllPrivate[account] or {}
-  hlp._threadid = "Thread ID of the current thread"
-  local threadid = (dbotData.lastthreadid or 0) + 1
-  dbotData.lastthreadid = threadid
-  dbotDirty = true
-  env._threadid = threadid
-  hlp.LocalCache = "Cache local to the current destination"
+	hlp.Private = "A table with private data, unreadable by other users. Note that this data is not persisted, but it is shared between any functions owned by you called in the same thread."
+	if account then
+		AllPrivate[account] = {}
+	end
+	env.Private = AllPrivate[account] or {}
+	hlp._threadid = "Thread ID of the current thread"
+	local threadid = (dbotData.lastthreadid or 0) + 1
+	dbotData.lastthreadid = threadid
+	dbotDirty = true
+	env._threadid = threadid
+	hlp.LocalCache = "Cache local to the current destination"
 	env.LocalCache = LocalCache
-  hlp.dbotscript = "Evalulate the infamous dbotscript, such as: %verb% the %noun%"
+	hlp.dbotscript = "Evalulate the infamous dbotscript, such as: %verb% the %noun%"
 	env.dbotscript = function(s, args, getValue)
 		local dbotscriptCache = getCache("$dbotscript", true)
 		local err, usage
@@ -918,52 +918,52 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return replacements(s, dbotscriptCache, newGetValue)
 		end
 	end
-  hlp._getHelp = "Returns help for built-in functions and values"
-  env._getHelp = function(s)
-    if not s then
-      return nil, "Please provide a built-in name - " .. (hlp._getHelp or '?')
-    end
-    assert(type(s) ~= "function", "Expected function name, not function")
-    local r
-    if armleghelp and s:sub(1, 1) == armlegcmdchar then
-      r = armleghelp[s:sub(2)]
-      if not r then
-        return nil, "Game command not found or does not have help"
-      end
-      return r
-    end
-    r = hlp[s]
-    if not r then
-      return nil, "Built-in name not found or does not have help"
-    end
-    return r
-  end
-  hlp.nick = "User's nickname"
+	hlp._getHelp = "Returns help for built-in functions and values"
+	env._getHelp = function(s)
+		if not s then
+			return nil, "Please provide a built-in name - " .. (hlp._getHelp or '?')
+		end
+		assert(type(s) ~= "function", "Expected function name, not function")
+		local r
+		if armleghelp and s:sub(1, 1) == armlegcmdchar then
+			r = armleghelp[s:sub(2)]
+			if not r then
+				return nil, "Game command not found or does not have help"
+			end
+			return r
+		end
+		r = hlp[s]
+		if not r then
+			return nil, "Built-in name not found or does not have help"
+		end
+		return r
+	end
+	hlp.nick = "User's nickname"
 	env.nick = nick
-  hlp.account = "User's account number, or nil if not authenticated"
+	hlp.account = "User's account number, or nil if not authenticated"
 	env.account = nickaccount
-  hlp.chan = "The current channel, or nil if none"
+	hlp.chan = "The current channel, or nil if none"
 	env.chan = chan
-  hlp.dest = "Set to chan if not nil, otherwise set to nick"
+	hlp.dest = "Set to chan if not nil, otherwise set to nick"
 	env.dest = dest
-  hlp.bot = "The bot's nickname"
+	hlp.bot = "The bot's nickname"
 	env.bot = client:nick()
 	-- env.iscmd = true
-  hlp.cmdchar = "Command character for built-in commands"
+	hlp.cmdchar = "Command character for built-in commands"
 	env.cmdchar = cmdchar
-  hlp.cmdprefix = "Command prefix for built-in commands, same as cmdchar unless more than one character"
+	hlp.cmdprefix = "Command prefix for built-in commands, same as cmdchar unless more than one character"
 	env.cmdprefix = cmdchar
-  hlp.boturl = "The bot's base URL"
+	hlp.boturl = "The bot's base URL"
 	env.boturl = dbotPortalURL
 	env.x_ent = function(...)
 		env.print("_G.x_ent is deprecated, use _G.getCleanTextFromHtml")
 		return getCleanTextFromHtml(...)
 	end
-  hlp.names = "IRC names, can supply an optional delimiter"
+	hlp.names = "IRC names, can supply an optional delimiter"
 	env.names = function(delim)
 		return getSortedNickList(client, chan, true, delim)
 	end
-  hlp.nicklist = "IRC nick list, can supply an optional channel name, defaults to the current channel"
+	hlp.nicklist = "IRC nick list, can supply an optional channel name, defaults to the current channel"
 	env.nicklist = function(where)
 		local xchan = chan
 		if type(where) == "string" then
@@ -974,13 +974,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return getSortedNickList(client, xchan, false)
 	end
-  hlp._memusage = "Total memory in use by Lua in Kbytes"
+	hlp._memusage = "Total memory in use by Lua in Kbytes"
 	env._memusage = function()
 		return collectgarbage('count'), 'Kbytes', 'total memory in use by Lua'
 	end
-  hlp.pickone = "Returns a random value from the provided array"
+	hlp.pickone = "Returns a random value from the provided array"
 	env.pickone = dbot_pickone
-  hlp.rnick = "Returns a random nick from the current channel"
+	hlp.rnick = "Returns a random nick from the current channel"
 	env.rnick = function()
 		return env.pickone(env.nicklist())
 	end
@@ -1002,12 +1002,12 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		return ipairs(x)
 	end
 	env.ipairs = newipairs
-  hlp.saferandom = "New random function protected from being overridden"
-  env.saferandom = function(a, b)
-    assert(not a and not b, "saferandom doesn't want your parameters")
-    return math.random() / 2 + internal.frandom(0x7FFFFFFF) / 0x7FFFFFFF / 2
-  end
-  hlp._getCalls = "First call enables user function call tracking, subsequent calls returns an array of tracked user functions called"
+	hlp.saferandom = "New random function protected from being overridden"
+	env.saferandom = function(a, b)
+		assert(not a and not b, "saferandom doesn't want your parameters")
+		return math.random() / 2 + internal.frandom(0x7FFFFFFF) / 0x7FFFFFFF / 2
+	end
+	hlp._getCalls = "First call enables user function call tracking, subsequent calls returns an array of tracked user functions called"
 	env._getCalls = function()
 		local r = {}
 		if callcache then
@@ -1020,7 +1020,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return r
 	end
-  hlp._getCallInfo = "Get details about a user function. Input: moduleName, funcName; Returns: #calls, lastcall time, modified time, owner ID"
+	hlp._getCallInfo = "Get details about a user function. Input: moduleName, funcName; Returns: #calls, lastcall time, modified time, owner ID"
 	env._getCallInfo = function(moduleName, funcName)
 		if not moduleName then
 			return nil, hlp._getCallInfo
@@ -1032,7 +1032,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		return finfo.calls or 0, finfo.lastcall or 0, finfo.time or 0, finfo.acctID
 	end
 	local notices = nil -- Can only send 1 notice per user.
-  hlp.sendNotice = "Send an IRC notice message to a user. Limitations apply."
+	hlp.sendNotice = "Send an IRC notice message to a user. Limitations apply."
 	env.sendNotice = function(to, msg)
 		cansingleprint = false
 		assert(type(to) == "string", "Invalid nick")
@@ -1045,14 +1045,14 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			if (not so or (os.time() - so.t) > 300) and to:lower() ~= nick:lower() then
 				-- print("env.sendNotice", so, os.time(), so.t, (os.time() - so.t), to, nick)
 				-- error("Cannot send notice to inactive user " .. to, 0)
-        return false, "Cannot send notice to inactive user " .. to
+				return false, "Cannot send notice to inactive user " .. to
 			end
 			client:sendNotice(to, "[" .. chan .. "] " .. safeString(msg))
 		else
 			if to:lower() ~= nick:lower() then
 				-- print("env.sendNotice", "nochan", to, nick)
 				-- error("Cannot send notice to inactive user " .. to, 0)
-        return false, "Cannot send notice to inactive user " .. to
+				return false, "Cannot send notice to inactive user " .. to
 			end
 			client:sendNotice(to, safeString(msg))
 		end
@@ -1099,10 +1099,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 					client:sendMsg(dest, "\001ACTION " .. outputPrintConvert(src, conv, safeString(act)) .. "\001", "dbotSandbox")
 				else
 					-- client:sendMsg(dest, safeString(uln), "dbotSandbox")
-          local x = outputPrintConvert(src, conv, safeString(uln))
+					local x = outputPrintConvert(src, conv, safeString(uln))
 					client:sendMsg(dest, x, "dbotSandbox")
-          LocalCache.lastmsgnick = client:nick()
-          LocalCache.lastmsg = x
+					LocalCache.lastmsgnick = client:nick()
+					LocalCache.lastmsg = x
 				end
 			end
 		end
@@ -1117,41 +1117,41 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		nick = nick,
 	}
 	env.print = envprint
-  hlp.singleprint = "Prints the arguments only if nothing has been printed yet"
+	hlp.singleprint = "Prints the arguments only if nothing has been printed yet"
 	env.singleprint = function(...)
 		if cansingleprint then
 			env.print(...)
 		end
 	end
-  hlp.directprint = "Directly prints the arguments, does not allow overriding by other accounts"
+	hlp.directprint = "Directly prints the arguments, does not allow overriding by other accounts"
 	renv.directprint = envprint
-  hlp.action = "Send an action message, also known as /me"
+	hlp.action = "Send an action message, also known as /me"
 	env.action = function(msg)
 		env.print("\001ACTION " .. msg .. "\001")
 	end
-  hlp.cash = "Returns the amount of cash the caller has, or for the provided user"
+	hlp.cash = "Returns the amount of cash the caller has, or for the provided user"
 	env.cash = function(who)
 		return cash(who or env.nick)
 	end
-  hlp.worth = "Similar to cash(), but also includes the value of investments"
+	hlp.worth = "Similar to cash(), but also includes the value of investments"
 	env.worth = function(who)
 		return worth(who or env.nick)
 	end
-  hlp.botstock = "Returns the value of the provided botstock symbol"
+	hlp.botstock = "Returns the value of the provided botstock symbol"
 	env.botstock = function(sym)
 		if botstockValue then
 			return botstockValue(sym)
 		end
 		return nil, "Botstocks not found"
 	end
-  hlp.botstockValues = "Returns information for the provided botstock symbol"
-  env.botstockValues = function()
-    if botstockValues then
-      return botstockValues()
-    end
+	hlp.botstockValues = "Returns information for the provided botstock symbol"
+	env.botstockValues = function()
+		if botstockValues then
+			return botstockValues()
+		end
 		return nil, "Botstocks not found"
-  end
-  hlp.getHonors = "Returns silly values for the provided user, the higher the better"
+	end
+	hlp.getHonors = "Returns silly values for the provided user, the higher the better"
 	env.getHonors = function(who)
 		if not who then
 			who = nick
@@ -1260,21 +1260,21 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return nil, "Not supported"
 	end
-  hlp._func = "Get the calling function"
+	hlp._func = "Get the calling function"
 	env._func = function()
 		return debug.getinfo(2, nil).func
 	end
-  hlp._funcname = "The name of the bot function"
-  env._funcname = "global_sandbox"
+	hlp._funcname = "The name of the bot function"
+	env._funcname = "global_sandbox"
 	env.string = env.string or {}
 	env.string.join = dbot_string_join
-  hlp.parseURL = "Parse a URL"
+	hlp.parseURL = "Parse a URL"
 	env.parseURL = parseURL
-  hlp.urlEncode = "URL Encode"
+	hlp.urlEncode = "URL Encode"
 	env.urlEncode = urlEncode
-  hlp.urlDecode = "URL Decode"
+	hlp.urlDecode = "URL Decode"
 	env.urlDecode = urlDecode
-  hlp.httpGet = "Fetch the contents from the specified URL, returns: data, mimeType, charset, status"
+	hlp.httpGet = "Fetch the contents from the specified URL, returns: data, mimeType, charset, status"
 	env.httpGet = function(url, callback)
 		local ok, err = canWebRequest(url, acct)
 		if not ok then
@@ -1325,7 +1325,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 	end
 	--]]
-  hlp.httpPost = "Same as httpGet but using POST method"
+	hlp.httpPost = "Same as httpGet but using POST method"
 	env.httpPost = function(url, body, callback)
 		if not acct or not acct:demand("post") then
 			if callback then
@@ -1369,45 +1369,45 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			end
 		end
 	end
-  hlp.httpRequest = "Returns a HTTP request object. Optional arguments: url, method. Properties: url, method, headers[key=value], mimeType, charset, responseHeaders, responseStatusCode, responseStatusDescription. Methods: setRequestBody, getResponseBody, getResponseStream"
-  env.httpRequest = function(url, method)
-    local req = {}
-    req.url = url
-    req.method = method or 'GET'
-    req.headers = {}
-    --
-    function req:setRequestBody(data)
-      self._reqbody = data
-    end
-    function req:getResponseBody()
-      local url = self.url
-      local method = self.method
-      local reqbody = self._reqbody
-      assert(type(url) == "string", "Request object does not have a valid URL set")
-      assert(type(method) == "string", "Invalid request method")
-      assert(reqbody == nil or type(reqbody) == "string", "Invalid request body")
-      method = method:upper()
-      if method == "GET" then
-      elseif method == "POST" then
-        if not acct or not acct:demand("post") then
-          return false, "Permission denied (HTTP method)"
-        end
-      else
-        if not acct or not acct:demand("HTTP_" .. method) then
-          return false, "Permission denied (HTTP method)"
-        end
-      end
-      local ok, err = canWebRequest(url, acct)
-      if not ok then
-        return nil, err, ""
-      end
-      local headers = {}
-      for k, v in pairs(self.headers) do
-        assert(type(k) == "string" and type(v) == "string", "Invalid header")
-        headers[k] = v
-      end
-      assert(coro, "coroutine pls")
-      -- Don't return the obj!
+	hlp.httpRequest = "Returns a HTTP request object. Optional arguments: url, method. Properties: url, method, headers[key=value], mimeType, charset, responseHeaders, responseStatusCode, responseStatusDescription. Methods: setRequestBody, getResponseBody, getResponseStream"
+	env.httpRequest = function(url, method)
+		local req = {}
+		req.url = url
+		req.method = method or 'GET'
+		req.headers = {}
+		--
+		function req:setRequestBody(data)
+			self._reqbody = data
+		end
+		function req:getResponseBody()
+			local url = self.url
+			local method = self.method
+			local reqbody = self._reqbody
+			assert(type(url) == "string", "Request object does not have a valid URL set")
+			assert(type(method) == "string", "Invalid request method")
+			assert(reqbody == nil or type(reqbody) == "string", "Invalid request body")
+			method = method:upper()
+			if method == "GET" then
+			elseif method == "POST" then
+				if not acct or not acct:demand("post") then
+					return false, "Permission denied (HTTP method)"
+				end
+			else
+				if not acct or not acct:demand("HTTP_" .. method) then
+					return false, "Permission denied (HTTP method)"
+				end
+			end
+			local ok, err = canWebRequest(url, acct)
+			if not ok then
+				return nil, err, ""
+			end
+			local headers = {}
+			for k, v in pairs(self.headers) do
+				assert(type(k) == "string" and type(v) == "string", "Invalid header")
+				headers[k] = v
+			end
+			assert(coro, "coroutine pls")
+			-- Don't return the obj!
 			local httpobj =  httpRequest(manager, url, function(...)
 						ensuretimely()
 						if not callback and coro then
@@ -1422,33 +1422,33 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 							end
 						end
 					end, nil, nil, method, reqbody)
-      if httpobj then
+			if httpobj then
 				local data, mimeType, charset = coroutine.yield(coro)
-        if not data then
-          return data, mimeType
-        end
-        self.mimeType = mimeType
-        self.charset = charset
-        self.responseStatusCode = httpobj.responseStatusCode
-        self.responseStatusDescription = httpobj.responseStatusDescription
-        self.responseHeaders = httpobj.responseHeaders
-        self.headers = null
-        self._reqbody = null
-        return data
+				if not data then
+					return data, mimeType
+				end
+				self.mimeType = mimeType
+				self.charset = charset
+				self.responseStatusCode = httpobj.responseStatusCode
+				self.responseStatusDescription = httpobj.responseStatusDescription
+				self.responseHeaders = httpobj.responseHeaders
+				self.headers = null
+				self._reqbody = null
+				return data
 			end
-    end
-    --
-    function req:getResponseStream()
-      local a, b = self:getResponseBody()
-      if not a then
-        return a, b
-      end
-      return env._createStringFile(a)
-    end
-    --
-    return req
-  end
-  hlp.getUnicodeInfo = "(deprecated)"
+		end
+		--
+		function req:getResponseStream()
+			local a, b = self:getResponseBody()
+			if not a then
+				return a, b
+			end
+			return env._createStringFile(a)
+		end
+		--
+		return req
+	end
+	hlp.getUnicodeInfo = "(deprecated)"
 	env.getUnicodeInfo = function(u) -- Deprecated!
 		--[[
 		local ud = unicodeData[u]
@@ -1459,11 +1459,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		env.print("_G.getUnicodeInfo is deprecated, use etc.getUnicodeInfo")
 		return env.etc.getUnicodeInfo(u)
 	end
-  hlp.getCleanTextFromHtml = "Converts the provided HTML to text based on inputs: html, stripComments, stripStyleAndScript, stripTags"
+	hlp.getCleanTextFromHtml = "Converts the provided HTML to text based on inputs: html, stripComments, stripStyleAndScript, stripTags"
 	env.getCleanTextFromHtml = getCleanTextFromHtml
-  hlp.html2text = "Converts the provided HTML to text, removing comments, script and style tags"
+	hlp.html2text = "Converts the provided HTML to text, removing comments, script and style tags"
 	env.html2text = html2text
-  hlp.irc2html = "Converts IRC color and styling codes to HTML"
+	hlp.irc2html = "Converts IRC color and styling codes to HTML"
 	env.irc2html = function(s)
 		return outputPrintConvert('irc', 'html', s, false)
 	end
@@ -1491,9 +1491,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return f()
 	end
-  hlp.getContentHtml = "Gets the content text from the provided HTML using heuristics"
+	hlp.getContentHtml = "Gets the content text from the provided HTML using heuristics"
 	env.getContentHtml = getContentHtml
-  hlp.stopwatch = "Returns a stopwatch object with methods: start, stop, reset, elapsed (seconds), isRunning (default is not running)"
+	hlp.stopwatch = "Returns a stopwatch object with methods: start, stop, reset, elapsed (seconds), isRunning (default is not running)"
 	env.stopwatch = function()
 		local sw = {}
 		sw._te = 0
@@ -1523,7 +1523,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		return sw
 	end
 	local ntimers = 0
-  hlp.setTimeout = "(deprecated, use sleep)"
+	hlp.setTimeout = "(deprecated, use sleep)"
 	env.setTimeout = function(callback, ms)
 		-- JavaScript-like setTimeout.
 		--  Note: this logic is also in dbotportal.
@@ -1551,7 +1551,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end)
 		tmr:start()
 	end
-  hlp.sleep = "Sleep for the specified amount of seconds"
+	hlp.sleep = "Sleep for the specified amount of seconds"
 	sleep = function(secs)
 		assert(coro, "Must use setTimeout instead of sleep")
 		-- cansingleprint = false -- Since we're waiting, setting this to false doesn't make sense here.
@@ -1655,20 +1655,20 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				local a, b = msg:match("^([^ ]+) ?(.*)")
 				if a then
 					local yes
-          if #t == 0 then
-            -- Generic input.
-            a = ""
-            b = msg
-            yes = true
-          else
-            for i, v in ipairs(t) do
-              -- print("^", v, a)
-              if type(v) == "string" and v:lower() == a:lower() then
-                yes = true
-                break
-              end
-            end
-          end
+					if #t == 0 then
+						-- Generic input.
+						a = ""
+						b = msg
+						yes = true
+					else
+						for i, v in ipairs(t) do
+							-- print("^", v, a)
+							if type(v) == "string" and v:lower() == a:lower() then
+								yes = true
+								break
+							end
+						end
+					end
 					if yes then
 						if tmr then
 							tmr:stop()
@@ -1694,17 +1694,17 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		tmr:start()
 		return coroutine.yield(coro)
 	end
-  hlp.input = "Waits for user input; a list of words to wait for can be provided along with a maximum timeout in seconds; returns user, word, arguments. This function has limitations, and should consider using reenter() instead."
+	hlp.input = "Waits for user input; a list of words to wait for can be provided along with a maximum timeout in seconds; returns user, word, arguments. This function has limitations, and should consider using reenter() instead."
 	env.input = userInput
-  hlp.reenterFunc = "Same as reenter but expects parameters: (func_name, ...)"
-  env.reenterFunc = function(func_name, ...)
-    if type(func_name) ~= "string"
-        or not func_name:find("^[a-zA-Z_]+[a-zA-Z0-9_%.]*$")
-        or (func_name == 'user.loadstring' and (not user and not user.loadstring))
-        or (func_name == 'global_sandbox' and not global_sandbox) then
-      return false, "Invalid reenter function: " .. func_name
-    end
-    local a, b = ...
+	hlp.reenterFunc = "Same as reenter but expects parameters: (func_name, ...)"
+	env.reenterFunc = function(func_name, ...)
+		if type(func_name) ~= "string"
+				or not func_name:find("^[a-zA-Z_]+[a-zA-Z0-9_%.]*$")
+				or (func_name == 'user.loadstring' and (not user and not user.loadstring))
+				or (func_name == 'global_sandbox' and not global_sandbox) then
+			return false, "Invalid reenter function: " .. func_name
+		end
+		local a, b = ...
 		local t
 		local timeout
 		if type(a) == "table" then
@@ -1730,7 +1730,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		else
 			event = "PM$me"
 		end
-    local time = os.time()
+		local time = os.time()
 		botRemoveCheck(function(state)
 			if state.dbotReenter and state.dbotReenter == dest then
 				if state.time < time - 80 then
@@ -1751,68 +1751,68 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				local a, b = msg:match("^([^ ]+) ?(.*)")
 				if a then
 					local yes
-          for i, v in ipairs(t) do
-            -- print("^", v, a)
-            if type(v) == "string" and v:lower() == a:lower() then
-              yes = true
-              break
-            end
-          end
+					for i, v in ipairs(t) do
+						-- print("^", v, a)
+						if type(v) == "string" and v:lower() == a:lower() then
+							yes = true
+							break
+						end
+					end
 					if yes then
 						if tmr then
 							tmr:stop()
 							tmr = nil
 						end
 						botRemove(state)
-            botRemoveCheck(function(otherstate)
-                -- Remove all other reenters for this dest & func_name!
-                if otherstate.dbotReenter
-                    and otherstate.dest == state.dest
-                    and otherstate.func_name == state.func_name
-                    then
-                  if otherstate.timer and otherstate.timer.stop then
-                    otherstate.timer:stop()
-                  end
-                end
-              end)
+						botRemoveCheck(function(otherstate)
+								-- Remove all other reenters for this dest & func_name!
+								if otherstate.dbotReenter
+										and otherstate.dest == state.dest
+										and otherstate.func_name == state.func_name
+										then
+									if otherstate.timer and otherstate.timer.stop then
+										otherstate.timer:stop()
+									end
+								end
+							end)
 						dbotRunSandboxHooked(client, sender, target,
-              state.func_name .. "([=========[" .. msg .. "]=========], '-reenter')")
+							state.func_name .. "([=========[" .. msg .. "]=========], '-reenter')")
 					end
 				end
 			end
 		end, state)
 		-- tmr = Timer(timeout, )
 		-- tmr:start()
-    local tmrstate = { dbotReenter = dest, time = time, func_name = func_name }
-    botWait(timeout, function()
-        if tmr then
-          tmr:stop()
-          tmr = nil
-        end
-        botRemove(state)
-        botRemoveCheck(function(otherstate)
-            -- Remove all other reenters for this dest & func_name!
-            if otherstate.dbotReenter
-                and otherstate.dest == state.dest
-                and otherstate.func_name == state.func_name
-                then
-              if otherstate.timer and otherstate.timer.stop then
-                otherstate.timer:stop()
-              end
-            end
-          end)
-        dbotRunSandboxHooked(client, sender, target,
-          state.func_name .. "('-timeout', '-reenter')", function(env)
-              env.reenterFunc = function()
-                return false, "Cannot reenter after timeout"
-              end
-            end)
-      end)
-    tmr = tmrstate.timer
-    safeenv['os.exit']();
-  end
-  hlp.reenter = "Re-enters the current bot function when the specified words are used by someone. The current thread will also be terminated upon success, otherwise false,errmsg. A list of words is expected, and an optional maximum timeout in seconds, defaults to 20 seconds (max 90). When a user uses one of the words, the bot function is re-entered with the user's message, along with '-reenter' as the 2nd argument. If the timeout elapses first, the arguments are '-timeout' and '-reenter'. For safety/security reasons, when a timeout happens, reenter will fail until the function is manually invoked by a user."
-  env.reenter = function() return false, "Cannot re-enter at the global level" end
+		local tmrstate = { dbotReenter = dest, time = time, func_name = func_name }
+		botWait(timeout, function()
+				if tmr then
+					tmr:stop()
+					tmr = nil
+				end
+				botRemove(state)
+				botRemoveCheck(function(otherstate)
+						-- Remove all other reenters for this dest & func_name!
+						if otherstate.dbotReenter
+								and otherstate.dest == state.dest
+								and otherstate.func_name == state.func_name
+								then
+							if otherstate.timer and otherstate.timer.stop then
+								otherstate.timer:stop()
+							end
+						end
+					end)
+				dbotRunSandboxHooked(client, sender, target,
+					state.func_name .. "('-timeout', '-reenter')", function(env)
+							env.reenterFunc = function()
+								return false, "Cannot reenter after timeout"
+							end
+						end)
+			end)
+		tmr = tmrstate.timer
+		safeenv['os.exit']();
+	end
+	hlp.reenter = "Re-enters the current bot function when the specified words are used by someone. The current thread will also be terminated upon success, otherwise false,errmsg. A list of words is expected, and an optional maximum timeout in seconds, defaults to 20 seconds (max 90). When a user uses one of the words, the bot function is re-entered with the user's message, along with '-reenter' as the 2nd argument. If the timeout elapses first, the arguments are '-timeout' and '-reenter'. For safety/security reasons, when a timeout happens, reenter will fail until the function is manually invoked by a user."
+	env.reenter = function() return false, "Cannot re-enter at the global level" end
 	env._clown = function()
 		client = ircclients[1]
 		chan = "#clowngames"
@@ -1842,7 +1842,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			env.print("umm.. nevermind.. ", b, c)
 		end
 	end
-  hlp.bit = "Module which adds bitwise operations on numbers"
+	hlp.bit = "Module which adds bitwise operations on numbers"
 	env.bit = env.bit or {}
 	env.bit.tobit = env.bit.tobit or bit.tobit
 	env.bit.bnot = env.bit.bnot or bit.bnot
@@ -1919,7 +1919,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	--]]
 	env.debug = env.debug or {}
 	-- env.debug.traceback = env.debug.traceback or debug.traceback
-  hlp.getLastError = "Get the last error, optional user can be provided"
+	hlp.getLastError = "Get the last error, optional user can be provided"
 	env.getLastError = function(othernick)
 		local ecache = getCache("~error", false)
 		if ecache then
@@ -1937,11 +1937,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return v
 		end
 	end
-  hlp.getuid = "Returns the uid (account number) for the current script owner or the provided user"
+	hlp.getuid = "Returns the uid (account number) for the current script owner or the provided user"
 	env.getuid = sbgetuid
-  hlp.getname = "Returns the user name for the current script owner or the provided account number"
+	hlp.getname = "Returns the user name for the current script owner or the provided account number"
 	env.getname = getname
-  hlp.owner = "Returns the account ID of the owner of the specified function (function reference, not name)"
+	hlp.owner = "Returns the account ID of the owner of the specified function (function reference, not name)"
 	env.owner = function(x)
 		-- if env.Editor then -- HACK?
 			if not x then
@@ -1959,54 +1959,54 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return nil, "Unknown"
 	end
-  hlp._createFile = "Create a file object given a provider and handle table; provider methods: close(handle), read(handle, numberOfBytes), write(handle, string), flush(handle), seek(handle, whence, offset), setvbuf(handle, setvbuf)"
-  env._createFile = function(provider, handle)
-    if not handle then
-      handle = {}
-    end
-    assert(type(handle) == "table", "handle must be table")
-    local nf = function() return false, "Not implemented" end
-    if not provider.close then
-      provider.close = nf
-    end
-    if not provider.read then
-      provider.read = nf
-    end
-    if not provider.write then
-      provider.write = nf
-    end
-    if not provider.flush then
-      provider.flush = nf
-    end
-    if not provider.seek then
-      provider.seek = nf
-    end
-    if not provider.setvbuf then
-      provider.setvbuf = nf
-    end
-    return FSOFile(provider, handle, true, true, false)
-  end
-  hlp._createStringFile = "Wraps a string into a file object using _createFile; writes always append, reads start at the beginning"
-  env._createStringFile = function(str)
-    local handle = { pos = 0, str = str or "" }
-    local stringprovider = {}
-    function stringprovider:read(handle, numberOfBytes)
-      local remain = #handle.str - handle.pos
-      local n = math.min(remain, numberOfBytes)
-      if n <= 0 then
-        return nil
-      end
-      local s = handle.str:sub(handle.pos + 1, handle.pos + n)
-      handle.pos = handle.pos + n
-      return s
-    end
-    function stringprovider:write(handle, str)
-      handle.str = handle.str .. str
-      return #str
-    end
-    return env._createFile(stringprovider, handle)
-  end
-  hlp.getCode = "Returns the code for the specified user function (function reference, not name)"
+	hlp._createFile = "Create a file object given a provider and handle table; provider methods: close(handle), read(handle, numberOfBytes), write(handle, string), flush(handle), seek(handle, whence, offset), setvbuf(handle, setvbuf)"
+	env._createFile = function(provider, handle)
+		if not handle then
+			handle = {}
+		end
+		assert(type(handle) == "table", "handle must be table")
+		local nf = function() return false, "Not implemented" end
+		if not provider.close then
+			provider.close = nf
+		end
+		if not provider.read then
+			provider.read = nf
+		end
+		if not provider.write then
+			provider.write = nf
+		end
+		if not provider.flush then
+			provider.flush = nf
+		end
+		if not provider.seek then
+			provider.seek = nf
+		end
+		if not provider.setvbuf then
+			provider.setvbuf = nf
+		end
+		return FSOFile(provider, handle, true, true, false)
+	end
+	hlp._createStringFile = "Wraps a string into a file object using _createFile; writes always append, reads start at the beginning"
+	env._createStringFile = function(str)
+		local handle = { pos = 0, str = str or "" }
+		local stringprovider = {}
+		function stringprovider:read(handle, numberOfBytes)
+			local remain = #handle.str - handle.pos
+			local n = math.min(remain, numberOfBytes)
+			if n <= 0 then
+				return nil
+			end
+			local s = handle.str:sub(handle.pos + 1, handle.pos + n)
+			handle.pos = handle.pos + n
+			return s
+		end
+		function stringprovider:write(handle, str)
+			handle.str = handle.str .. str
+			return #str
+		end
+		return env._createFile(stringprovider, handle)
+	end
+	hlp.getCode = "Returns the code for the specified user function (function reference, not name)"
 	env.getCode = function(x)
 		local finfo = owners[x]
 		if not finfo then
@@ -2014,7 +2014,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return loadUdfCode(finfo)
 	end
-  hlp.ircUser = "Returns a table with details on the specified user"
+	hlp.ircUser = "Returns a table with details on the specified user"
 	env.ircUser = function(n, offlineInfo)
 		local result = {}
 		result.channels = {}
@@ -2058,13 +2058,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		--]]
 		return result
 	end
-  hlp.atTimeout = "Sets a string which will be printed if the current script times out; subsequent calls will override the previous"
+	hlp.atTimeout = "Sets a string which will be printed if the current script times out; subsequent calls will override the previous"
 	env.atTimeout = function(str)
 		assert(type(str) == "string" or str == nil, "string pls")
 		res.timeoutstr = str
 	end
 	-- local alreadyseen
-  hlp.seen = "Returns the time of when the specified user was last seen"
+	hlp.seen = "Returns the time of when the specified user was last seen"
 	env.seen = function(who, where)
 		assert(type(who) == "string", "seen: invalid argument")
 		-- assert(not alreadyseen) -- Only one.
@@ -2097,11 +2097,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		error("No boost")
 	end
-  hlp.globToLuaPattern = "Converts a glob or wildcard string into a lua pattern"
+	hlp.globToLuaPattern = "Converts a glob or wildcard string into a lua pattern"
 	env.globToLuaPattern = globToLuaPattern
-  hlp.seed = "Set to a random number seed at script startup"
+	hlp.seed = "Set to a random number seed at script startup"
 	env.seed = internal.frandom()
-  hlp.Output = "A table containing information about printed output"
+	hlp.Output = "A table containing information about printed output"
 	env.Output = env.Output or {}
 	-- env.Output.maxLines = 4
 	env.Output.maxLines = maxprintlines
@@ -2109,7 +2109,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.Output.printTypeConvert = 'auto'
 	env.Output.mode = 'irc'
 	env.Output.tty = true
-  hlp.Output = "A table containing information about input"
+	hlp.Output = "A table containing information about input"
 	env.Input = env.Input or {}
 	--[[
 	if finishEnvFunc then -- Moved into real callback below.
@@ -2120,7 +2120,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	-- internal.memory_limit(dbotMemLimit, coro)
 	-- local ok, y = runSandboxHook(code, dbotCpuLimit, env)
 	local ok, y = loadSandboxHook(code, dbotCpuLimit, env, function(env, func)
-  
+	
 		if env.package and env.package.searchers then
 			table.insert(env.package.searchers, function(modname, ...)
 				if env.plugin[modname:gsub("%.", "_")] then
@@ -2136,8 +2136,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 
 		local envloadstring = env.loadstring
-    -- Top-level loadstring is the real deal, it lets godloadstring work, etc.
-    -- When running any user function or guest code, then it becomes guestloadstring.
+		-- Top-level loadstring is the real deal, it lets godloadstring work, etc.
+		-- When running any user function or guest code, then it becomes guestloadstring.
 		renv.loadstring = function(src, name)
 			local a, b = envloadstring(src, name)
 			if a then
@@ -2146,7 +2146,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			end
 			return a, b
 		end
-    hlp.safeloadstring = "loadstring which has a safe environment, protecting the caller's environment"
+		hlp.safeloadstring = "loadstring which has a safe environment, protecting the caller's environment"
 		renv.safeloadstring = function(src, name)
 			local _ENV = {}
 			_ENV._G = _ENV
@@ -2157,12 +2157,12 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			end
 			return a, b
 		end
-    hlp.guestloadstring = "loadstring which uses a guest environment"
-    renv.guestloadstring = function(src, name)
-      return loadstringAsGuest(src, name or 'user.loadstring')
-    end
-    env.guestloadstring = renv.guestloadstring
-    hlp.unsafeloadstring = "loadstring which does not protect the caller's environment"
+		hlp.guestloadstring = "loadstring which uses a guest environment"
+		renv.guestloadstring = function(src, name)
+			return loadstringAsGuest(src, name or 'user.loadstring')
+		end
+		env.guestloadstring = renv.guestloadstring
+		hlp.unsafeloadstring = "loadstring which does not protect the caller's environment"
 		renv.unsafeloadstring = renv.loadstring
 		env.loadstring = nil -- renv only!
 
@@ -2175,8 +2175,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			env.halt()
 		end
 		--]]
-    -- hlp.halt = "(deprecated, use os.exit)"
-    hlp.halt = "Same as os.exit but protected from being overridden"
+		-- hlp.halt = "(deprecated, use os.exit)"
+		hlp.halt = "Same as os.exit but protected from being overridden"
 		env.halt = function()
 			-- env.os.exit()
 			safeenv['os.exit']()
@@ -2190,7 +2190,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return 10
 		end
 
-    hlp.getUserFS = "Return a FS object for the specified user, allow's viewing the user's file system"
+		hlp.getUserFS = "Return a FS object for the specified user, allow's viewing the user's file system"
 		renv.getUserFS = function(n)
 			local fso = getDbotFSO(getuid(nick), getname, n)
 			local a, b = fso:chroot("/user/" .. n:lower())
@@ -2201,7 +2201,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return wrapDbotSandboxFS(fso)
 		end
 
-    hlp.getRootFS = "Returns a root FS object, containing all user's files"
+		hlp.getRootFS = "Returns a root FS object, containing all user's files"
 		renv.getRootFS = function()
 			if acct and acct.id == 1 then
 				return wrapDbotSandboxFS(getDbotUserRootFSO(getuid(nick), getname), true)
@@ -2212,11 +2212,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		if finishEnvFunc then
 			finishEnvFunc(env, func)
 		end
-    
-    safeenv['os.exit'] = env.os.exit
-    for i, k in ipairs(protectnames) do
-      safeenv[k] = env[k]
-    end
+		
+		safeenv['os.exit'] = env.os.exit
+		for i, k in ipairs(protectnames) do
+			safeenv[k] = env[k]
+		end
 
 		env._G = nil -- Don't want a 2nd one! Could be used to break out of udf fenv?
 		renv._G = renv
@@ -2234,19 +2234,19 @@ end
 
 
 function _p_replace(s, find, rep)
-  s = s or ''
-  local findlen = #find
-  local replen = #rep
-  local i = 1
-  while true do
-    i = string.find(s, find, i, true)
-    if not i then
-      break
-    end
-    s = string.sub(s, 1, i - 1) .. rep .. string.sub(s, i + findlen)
-    i = i + replen
-  end
-  return s
+	s = s or ''
+	local findlen = #find
+	local replen = #rep
+	local i = 1
+	while true do
+		i = string.find(s, find, i, true)
+		if not i then
+			break
+		end
+		s = string.sub(s, 1, i - 1) .. rep .. string.sub(s, i + findlen)
+		i = i + replen
+	end
+	return s
 end
 
 
