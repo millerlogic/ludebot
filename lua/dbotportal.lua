@@ -21,10 +21,10 @@ if not dbotPortal then
 			a()
 		end
 	end
-  
-  dbotPortal = HttpServer(manager)
+
+	dbotPortal = HttpServer(manager)
 	-- dbotPortal = CoroHttpServer(manager)
-  
+
 	assert(dbotPortal:listen(nil, dbotPortalPort))
 	-- dbotPortal:reuseaddr(true)
 	dbotPortal:blocking(false)
