@@ -1,7 +1,7 @@
 
 
--- irccmd server.com dbott "-input:RUN=$RUN {1+}" -load=dbotloader.lua
--- ./irccmd server.com piluadbot '-input:RUN=$RUN {1+}' -load=dbotloader.lua
+-- export LUA_PATH="ludebot/lua/?.lua;irccmd/lua/?.lua;luasandy/lua/?.lua;;"
+-- ./irccmd/irccmd server.com testludebot "-input:RUN=$RUN {1+}" -load=ludebot/lua/dbotloader.lua
 
 
 require("internal")
