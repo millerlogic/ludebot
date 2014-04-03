@@ -58,36 +58,40 @@ function prepareWL(filepath)
 		wordtypes['drink'] = 'noun.drink'
 	end
 	local fcache = {}
-	local infile = assert(io.open(filepath))
-	for line in infile:lines() do
-		local wt, word = line:match("^%d+ (%d%d) [^ ]+ [^ ]+ ([^ ]+)")
-		if wt and word then
-			if wordtypes[wt] == 'noun.food' then
-				if word:find("juice") or ((line:find(" beverage ") or line:find(" drink ")) and not line:find(" food ")) then
-					wt = 'drink'
-					-- print("Changing from food to drink:", line)
+	local infile, inferr = io.open(filepath)
+	if not infile then
+		print("WARNING:", inferr)
+	else
+		for line in infile:lines() do
+			local wt, word = line:match("^%d+ (%d%d) [^ ]+ [^ ]+ ([^ ]+)")
+			if wt and word then
+				if wordtypes[wt] == 'noun.food' then
+					if word:find("juice") or ((line:find(" beverage ") or line:find(" drink ")) and not line:find(" food ")) then
+						wt = 'drink'
+						-- print("Changing from food to drink:", line)
+					end
 				end
-			end
-			local f = fcache[wt]
-			if not f then
-				if wordtypes[wt] then
-					local fp = wordtypes[wt]
-					print("Creating " .. fp)
-					f = assert(io.open("wordlists/" .. fp, "w+"))
-					fcache[wt] = f
-				elseif wordtypes[wt] ~= false then
-					print("WARNING: unknown word type: " .. wt .. " (word " .. word .. ")")
-					wordtypes[wt] = false
+				local f = fcache[wt]
+				if not f then
+					if wordtypes[wt] then
+						local fp = wordtypes[wt]
+						print("Creating " .. fp)
+						f = assert(io.open("wordlists/" .. fp, "w+"))
+						fcache[wt] = f
+					elseif wordtypes[wt] ~= false then
+						print("WARNING: unknown word type: " .. wt .. " (word " .. word .. ")")
+						wordtypes[wt] = false
+					end
 				end
+				if f then
+					f:write(word, '\n')
+				end
+			else
+				-- print(line)
 			end
-			if f then
-				f:write(word, '\n')
-			end
-		else
-			-- print(line)
 		end
+		infile:close()
 	end
-	infile:close()
 	for k, v in pairs(fcache) do
 		v:close()
 	end
