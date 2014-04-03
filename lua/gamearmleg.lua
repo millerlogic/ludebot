@@ -59,8 +59,9 @@ if not alData and irccmd then
 	end
 	local t, xerr = deserialize("armleg.dat" .. (datx or ''))
 	if not t then
-		serialize({ bank = { }, userstocks = { }, stockdata = { } }, "armleg.dat.new")
-		error("Unable to load armleg.dat" .. (datx or ''))
+		assert(firstrun, "Unable to load armleg.dat" .. (datx or '') .. " Use -flag=firstrun")
+		t = { bank = { }, userstocks = { }, stockdata = { } }
+		serialize(t, "armleg.dat")
 	end
 	assert(type(t.bank) == "table")
 	assert(type(t.userstocks) == "table")
