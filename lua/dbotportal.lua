@@ -736,6 +736,12 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			]])
 			user:send("</body></html>")
 		end
+	elseif vuri == "/t/codechown" then
+		local nick = "Guest"
+		if acct then
+			nick = acct:nick()
+		end
+		processHtdFile(dbotPortalRoot .. "/_codechown.htd", user, vuri, qs, { nick = nick }, acct)
 	elseif vuri == "/t/code-post" then
 		if headers["Host"] ~= dbotPortalHost
         and headers["Host"] ~= dbotPortalHost .. ":" .. dbotPortalPort then

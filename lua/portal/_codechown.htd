@@ -1,0 +1,66 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<lua><!--
+function codechown(user, vuri, qs, acct)
+	local module = ""
+	local name = ""
+	local chnick = ""
+  if qs then
+    chnick = urlDecode(getval(qs, "newuser") or '')
+		module = getval(qs, "module") or ''
+		name = getval(qs, "name") or ''
+    if chnick and chnick ~= "" then
+      -- lookup author...
+      local finfo = getUdfInfo(module, name)
+      if finfo then
+        if acct.id == finfo.acctID then
+          local chacctID = getuid(chnick)
+          if chacctID then
+            finfo.chacctID = nil
+            if acct.id ~= chacctID then
+              finfo.chacctID = chacctID
+            end
+            dbotDirty = true
+            return "Giving ownership to " .. chnick .. " (" .. chacctID .. ")" ..
+						[[
+							<br><br>
+							<a href="/t/view?module=]] .. module .. [[&name=]] .. name .. [[">Done</a>
+						]]
+          else
+            return "No such user: " .. chnick
+          end
+        else
+          return "Permission denied (that's not my name)"
+        end
+			else
+				return "Function not found"
+      end
+		end
+  end
+	return [[
+		<form action="codechown">
+			<div>Function name: <input name="name" value="]]
+				.. name .. [["></div>
+			<div>Module: <input name="module" value="]]
+				.. module .. [["></div>
+			<div>New owner: <input id="newuser" name="newuser" value="]]
+				.. chnick .. [["></div>
+			<script>
+				document.getElementById('newuser').focus()
+			</script>
+			<div><input type="submit"></div>
+		</form>
+	]]
+end
+--></lua>
+	<title>dbot - <@nick@></title>
+  <style>
+    body { font-family: helvetica, arial; margin: 10px; background-color: white; color: black; }
+    a { color: black }
+  </style>
+</head>
+<body>
+	<h4>dbot functions <a href="/t/" style="font-weight: normal; font-size: 10pt">(home)</a></h4>
+<@codechown(...)@>
+</body>
+</html>

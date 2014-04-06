@@ -207,7 +207,7 @@ function accountCanSaveUdf(acct, moduleName, funcName)
 	if finfo then
 		-- Ensure allowed!
 		-- if getAccountMask(finfo.faddr):lower() ~= acct:mask():lower() then
-		if finfo.acctID ~= acct.id then
+		if finfo.acctID ~= acct.id and finfo.chacctID ~= acct.id then
 			return false, "Access denied"
 		end
 	end
@@ -228,7 +228,7 @@ function accountSaveUdf(acct, moduleName, funcName, funcCode, isNew)
 	if finfo then
 		-- Ensure allowed!
 		-- if getAccountMask(finfo.faddr):lower() ~= acct:mask():lower() then
-		if finfo.acctID ~= acct.id then
+		if finfo.acctID ~= acct.id and finfo.chacctID ~= acct.id then
 			return nil, "Access denied"
 		end
 		if isNew then
@@ -242,6 +242,7 @@ function accountSaveUdf(acct, moduleName, funcName, funcCode, isNew)
 	finfo = xfi
 	finfo.faddr = acct:fulladdress()
 	finfo.acctID = acct.id
+	finfo.chacctID = nil -- Clear on save.
 	return finfo
 end
 

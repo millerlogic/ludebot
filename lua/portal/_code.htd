@@ -71,13 +71,26 @@ function codeformInfoAuthorName(user, vuri, qs, acct)
 				-- lookup author...
 				local finfo = getUdfInfo(getval(qs, "module"), getval(qs, "name"))
 				if finfo then
-					return nickFromSource(finfo.faddr or "?")
+					local s = nickFromSource(finfo.faddr or "?")
+					if finfo.chacctID then
+						s = s .. " -&gt; " .. getname(finfo.chacctID)
+					end
+					return s
 				end
 			end
 			return "?"
 		end
 	end
 	return ""
+end
+
+function codechownLink(user, vuri, qs, acct)
+	local s = "codechown"
+	if qs then
+		s = s .. "?module=" .. (getval(qs, "module") or '')
+		s = s .. "&name=" .. (getval(qs, "name") or '')
+	end
+	return s
 end
 
 
@@ -139,7 +152,7 @@ function codeformEditInfo(user, vuri, qs, acct)
 				-- lookup author...
 				local finfo = getUdfInfo(urlDecode(getval(qs, "module")), urlDecode(getval(qs, "name")))
 				if finfo then
-					if finfo.acctID == acct.id then
+					if finfo.acctID == acct.id or finfo.chacctID == acct.id then
 						if vuri == "/t/view" then
 							return "<a style=\"font-size: 10pt;\" href=\"/t/edit" .. qs .. "\">(edit)</a>"
 						else
@@ -400,6 +413,8 @@ end
 	<style>
 		body { font-family: helvetica, arial; margin: 10px; background-color: white; color: black; }
 		a { color: black }
+		.hoverlink { text-decoration: none; }
+		.hoverlink:hover { text-decoration: underline; }
 		#codeform {  float: left;  }
 			#codeform td { text-align: left; }
 			#codeform .col1 { width: 150px; }
@@ -450,7 +465,7 @@ end
 				</select></td>
 			</tr>
 			<tr>
-				<td class="col1"><label for="codeauthor">Author:</label></td>
+				<td class="col1"><label for="codeauthor"><a href="@@codechownLink(...)@@" class="hoverlink">Author</a>:</label></td>
 				<td><input class="infofield" id="codeauthor" disabled="disabled"
 					value="@@codeformInfoAuthorName(...)@@" ></td>
 			</tr>
