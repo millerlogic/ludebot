@@ -465,7 +465,7 @@ end
 				</select></td>
 			</tr>
 			<tr>
-				<td class="col1"><label for="codeauthor"><a href="@@codechownLink(...)@@" class="hoverlink">Author</a>:</label></td>
+				<td class="col1"><label for="codeauthor"><a href="@@codechownLink(...)@@">Author</a>:</label></td>
 				<td><input class="infofield" id="codeauthor" disabled="disabled"
 					value="@@codeformInfoAuthorName(...)@@" ></td>
 			</tr>

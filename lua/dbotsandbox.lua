@@ -455,7 +455,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		fenv.directprint = envprint
 		local fs = wrapDbotSandboxFS(nickFromSource(finfo.faddr), true)
-		fenv.io = fsToIO(fs, _clonetable(renv.io))
+		fenv.io = fsToIO(fs, createSandboxEnvIO())
 		fenv.os = fsToOS(fs, _clonetable(renv.os))
 		fenv.getUserFS = function(n)
 			local fso = getDbotFSO(finfo.acctID, getname, n)
