@@ -5,10 +5,14 @@ function codechown(user, vuri, qs, acct)
 	local module = ""
 	local name = ""
 	local chnick = ""
-  if qs then
-    chnick = urlDecode(getval(qs, "newuser") or '')
-		module = getval(qs, "module") or ''
-		name = getval(qs, "name") or ''
+	local req = qs
+	if method == "POST" and headers["Content-Type"] == "application/x-www-form-urlencoded" then
+		req = "?" .. user.data
+	end
+  if req then
+    chnick = urlDecode(getval(req, "newuser") or '')
+		module = getval(req, "module") or ''
+		name = getval(req, "name") or ''
     if chnick and chnick ~= "" then
       -- lookup author...
       local finfo = getUdfInfo(module, name)
@@ -16,16 +20,21 @@ function codechown(user, vuri, qs, acct)
         if acct.id == finfo.acctID then
           local chacctID = getuid(chnick)
           if chacctID then
-            finfo.chacctID = nil
-            if acct.id ~= chacctID then
-              finfo.chacctID = chacctID
-            end
-            dbotDirty = true
-            return "Giving ownership to " .. chnick .. " (" .. chacctID .. ")" ..
-						[[
-							<br><br>
-							<a href="/t/view?module=]] .. module .. [[&name=]] .. name .. [[">Done</a>
-						]]
+						local secretpw = getval(req, "pw") or ""
+						if not secretpw or not acct or secretpw ~= acct.spw then
+							return "Authentication failure (pw)"
+						else
+							finfo.chacctID = nil
+							if acct.id ~= chacctID then
+								finfo.chacctID = chacctID
+							end
+							dbotDirty = true
+							return "Giving ownership to " .. chnick .. " (" .. chacctID .. ")" ..
+							[[
+								<br><br>
+								<a href="/t/view?module=]] .. module .. [[&name=]] .. name .. [[">Done</a>
+							]]
+						end
           else
             return "No such user: " .. chnick
           end
@@ -37,8 +46,12 @@ function codechown(user, vuri, qs, acct)
       end
 		end
   end
+	local setpw = ""
+	if acct and acct.spw then
+		setpw = acct.spw
+	end
 	return [[
-		<form action="codechown">
+		<form action="codechown" method="POST">
 			<div>Function name: <input name="name" value="]]
 				.. name .. [["></div>
 			<div>Module: <input name="module" value="]]
@@ -48,6 +61,7 @@ function codechown(user, vuri, qs, acct)
 			<script>
 				document.getElementById('newuser').focus()
 			</script>
+			<input type="hidden" name="pw" value="]] .. setpw .. [[">
 			<div><input type="submit"></div>
 		</form>
 	]]

@@ -741,7 +741,8 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		if acct then
 			nick = acct:nick()
 		end
-		processHtdFile(dbotPortalRoot .. "/_codechown.htd", user, vuri, qs, { nick = nick }, acct)
+		processHtdFile(dbotPortalRoot .. "/_codechown.htd", user, vuri, qs,
+			{ nick = nick, method = method, headers = headers }, acct)
 	elseif vuri == "/t/code-post" then
 		if headers["Host"] ~= dbotPortalHost
         and headers["Host"] ~= dbotPortalHost .. ":" .. dbotPortalPort then
