@@ -1700,9 +1700,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.reenterFunc = function(func_name, ...)
 		if type(func_name) ~= "string"
 				or not func_name:find("^[a-zA-Z_]+[a-zA-Z0-9_%.]*$")
-				or (func_name == 'user.loadstring' and (not user and not user.loadstring))
-				or (func_name == 'global_sandbox' and not global_sandbox) then
-			return false, "Invalid reenter function: " .. func_name
+				or (func_name == 'user.loadstring' and (not env.user or not env.user.loadstring))
+				or (func_name == 'global_sandbox' and not env.global_sandbox) then
+			return false, "Invalid reenter function: " .. tostring(func_name)
 		end
 		local a, b = ...
 		local t
@@ -1716,7 +1716,6 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				local v = select(i, ...)
 				if type(v) == "number" then
 					timeout = v
-					break
 				else
 					table.insert(t, v)
 				end
@@ -1737,8 +1736,16 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 					print("WARNING: Removing expired reenter()")
 					return false -- Remove it.
 				end
+				if state.dbotReenter and state.func_name == func_name then
+					-- Remove another duplicate reenter for the same function.
+					return false
+				end
 			end
 		end)
+		if #t == 0 then
+			-- Just clear and return if no words to reenter on.
+			return true
+		end
 		local tmr
 		local state = { dbotReenter = dest, time = time, func_name = func_name }
 		botExpect(event, function(state, client, sender, target, msg)
@@ -1764,17 +1771,6 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 							tmr = nil
 						end
 						botRemove(state)
-						botRemoveCheck(function(otherstate)
-								-- Remove all other reenters for this dest & func_name!
-								if otherstate.dbotReenter
-										and otherstate.dest == state.dest
-										and otherstate.func_name == state.func_name
-										then
-									if otherstate.timer and otherstate.timer.stop then
-										otherstate.timer:stop()
-									end
-								end
-							end)
 						dbotRunSandboxHooked(client, sender, target,
 							state.func_name .. "([=========[" .. msg .. "]=========], '-reenter')")
 					end
