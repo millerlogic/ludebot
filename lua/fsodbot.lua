@@ -576,6 +576,10 @@ function DbotUserFSProvider:init(uid, getname, ...)
 	self.maxOpenFiles = 8
 	self.storageQuota = (1024 * 1024) * 2
 	self.maxNodes = 512 -- Max files, dirs, etc.
+	if uid == 1 then
+		self.storageQuota = self.storageQuota * 2
+		self.maxNodes = self.maxNodes * 2
+	end
 	local user = assert(getname(uid))
 	user = user:lower()
 	self.userinfo = fsodbotData.users[user]
