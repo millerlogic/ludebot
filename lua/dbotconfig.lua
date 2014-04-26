@@ -243,6 +243,7 @@ function accountSaveUdf(acct, moduleName, funcName, funcCode, isNew)
 	finfo.faddr = acct:fulladdress()
 	finfo.acctID = acct.id
 	finfo.chacctID = nil -- Clear on save.
+	finfo.secure = nil -- Clear on save; need to re-confirm secure-ness.
 	return finfo
 end
 
@@ -385,6 +386,22 @@ function getUserAccount(fulladdress, demand)
 		end
 	end
 	return nil, "Invalid user info"
+end
+
+
+-- Only looks it up, does not update the account in any way.
+-- Returns account, main_nick
+function getUserAccountByNetAcct(network, netacct)
+	if not network or network == "" or network == "Unknown" then
+		return nil, "Unknown network"
+	end
+	local nakey = "netacct_" .. network
+	for k, v in pairs(dbotData.login) do
+		if v[nakey] == netacct then
+			return v, k
+		end
+	end
+	return nil, 'No such user'
 end
 
 

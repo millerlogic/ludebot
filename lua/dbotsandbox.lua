@@ -371,7 +371,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		"tostring","tonumber","assert","error","pairs",
 		"ipairs","next","pcall","rawget","rawset","select",
 		"setmetatable","getmetatable","type","unpack","require",
-		"halt", "saferandom", "_threadid",
+		"halt","saferandom","_threadid",
+		"allCodeSecure","allCodeTrusted","whyNotCodeTrusted",
 	}
 	local env = {}
 	local renv = {} -- Current run env.
@@ -393,6 +394,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	local hlp = {}
 	local LocalCache = getCache('local:' .. (dest or ''), true)
 	local AllPrivate = {} -- Indexed by account ID.
+	
+	local allCodeSecure = true -- See hlp.allCodeSecure
+	local allCodeTrusted = true -- See hlp.allCodeTrusted
+	local whyNotCodeTrusted = nil -- See hlp.whyNotCodeTrusted
+	local trustedCodeAcctID = nil -- Note: not set for secure code.
 
 	-- G might be renv or fenv.
 	local function gpairs(G)
@@ -483,6 +489,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return nil, "Permission denied"
 		end
 		fenv.safeloadstring = function(src, name)
+			allCodeSecure = false
+			allCodeTrusted = false
+			whyNotCodeTrusted = "loadstring"
 			local a, b = renv.loadstring(src, name)
 			if a then
 				local xenv = {}
@@ -495,6 +504,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		-- fenv.loadstring = fenv.safeloadstring
 		fenv.loadstring = renv.guestloadstring
 		fenv.unsafeloadstring = function(src, name)
+			allCodeSecure = false
+			allCodeTrusted = false
+			whyNotCodeTrusted = "loadstring"
 			local a, b = renv.loadstring(src, name)
 			if a then
 				setfenv(a, fenv)
@@ -503,6 +515,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return a, b
 		end
 		fenv.godloadstring = function(src, name)
+			allCodeSecure = false
+			allCodeTrusted = false
+			whyNotCodeTrusted = "loadstring"
 			if finfo.acctID == 1 then
 				return renv.loadstring(src, name)
 			else
@@ -605,6 +620,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	
 	local function loadstringAsGuest(code, name)
+		allCodeSecure = false
+		allCodeTrusted = false
+		whyNotCodeTrusted = "loadstring"
 		local guestnick = "$guest"
 		local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.guest", true)) -- demand
 		return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
@@ -695,8 +713,19 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			__index = function(t, k)
 				local finfo = getUdfInfo(modname, k)
 				if finfo then
-					local fcode, err = loadUdfCode(finfo)
 					local fname = modname .. "." .. k
+					if not finfo.secure then
+						allCodeSecure = false
+						if trustedCodeAcctID then
+							if trustedCodeAcctID ~= finfo.acctID then
+								allCodeTrusted = false
+								whyNotCodeTrusted = fname
+							end
+						else
+							trustedCodeAcctID = finfo.acctID
+						end
+					end
+					local fcode, err = loadUdfCode(finfo)
 					if not fcode then
 						print(fname, err)
 						error("Fatal error loading function " .. fname, 0)
@@ -982,6 +1011,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.pickone = dbot_pickone
 	hlp.rnick = "Returns a random nick from the current channel"
 	env.rnick = function()
+		if not chan then
+			return nick
+		end
 		return env.pickone(env.nicklist())
 	end
 	local pairs = pairs -- Depends on this pairs already not doing __pairs...
@@ -1129,8 +1161,14 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.action = function(msg)
 		env.print("\001ACTION " .. msg .. "\001")
 	end
+	hlp.allCodeSecure = "Returns true if all code called was confirmed as secure"
+	env.allCodeSecure = function() return allCodeSecure end
+	hlp.allCodeTrusted = "Returns true if all code called is either secure or called by first author called"
+	env.allCodeTrusted = function() return allCodeTrusted end
+	hlp.whyNotCodeTrusted = "Returns function name if allCodeTrusted is false"
+	env.whyNotCodeTrusted = function() return whyNotCodeTrusted end
 	hlp.cash = "Returns the amount of cash the caller has, or for the provided user"
-	env.cash = function(who)
+	renv.cash = function(who)
 		return cash(who or env.nick)
 	end
 	hlp.worth = "Similar to cash(), but also includes the value of investments"
@@ -2135,6 +2173,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		-- Top-level loadstring is the real deal, it lets godloadstring work, etc.
 		-- When running any user function or guest code, then it becomes guestloadstring.
 		renv.loadstring = function(src, name)
+			allCodeSecure = false
+			allCodeTrusted = false
+			whyNotCodeTrusted = "loadstring"
 			local a, b = envloadstring(src, name)
 			if a then
 				setfenv(a, renv)
@@ -2144,6 +2185,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		hlp.safeloadstring = "loadstring which has a safe environment, protecting the caller's environment"
 		renv.safeloadstring = function(src, name)
+			allCodeSecure = false
+			allCodeTrusted = false
+			whyNotCodeTrusted = "loadstring"
 			local _ENV = {}
 			_ENV._G = _ENV
 			local a, b = envloadstring(src, name)
@@ -2155,6 +2199,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		hlp.guestloadstring = "loadstring which uses a guest environment"
 		renv.guestloadstring = function(src, name)
+			allCodeSecure = false
+			allCodeTrusted = false
+			whyNotCodeTrusted = "loadstring"
 			return loadstringAsGuest(src, name or 'user.loadstring')
 		end
 		env.guestloadstring = renv.guestloadstring
