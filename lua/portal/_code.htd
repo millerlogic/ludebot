@@ -84,6 +84,20 @@ function codeformInfoAuthorName(user, vuri, qs, acct)
 	return ""
 end
 
+function checkIfSecureTR(user, vuri, qs, qacct)
+	local finfo = getUdfInfo(getval(qs, "module"), getval(qs, "name"))
+	if finfo then
+		if finfo.secure then
+			if vuri == "/t/edit" then
+				return "<tr><td colspan='3'><strong>WARNING: </strong>editing this function will no longer allow it to be called from a trusted context without re-approval!</td></tr>"
+			else
+				return "<tr><td colspan='3'>This function can be called from a trusted context</td></tr>"
+			end
+		end
+	end
+	return ""
+end
+
 function codechownLink(user, vuri, qs, acct)
 	local s = "codechown"
 	if qs then
@@ -469,6 +483,7 @@ end
 				<td><input class="infofield" id="codeauthor" disabled="disabled"
 					value="@@codeformInfoAuthorName(...)@@" ></td>
 			</tr>
+			<@checkIfSecureTR(...)@>
 			<tr>
 				<td colspan="3">
 					<div id="codearea">

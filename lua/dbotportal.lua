@@ -452,6 +452,24 @@ body { margin: 0; background-color: white; color: black; }
 end
 
 
+function getContentTypeFromExt(ext)
+	if ext == "js" then
+		return "application/javascript"
+	elseif ext == "json" then
+		return "application/json"
+	elseif ext == "css" then
+		return "text/css"
+	elseif ext == "html" or ext == "htm" or ext == "" or not ext then
+		return "text/html; charset=utf-8"
+	elseif ext == "txt" or ext == "log" then
+		return "text/plain; charset=utf-8"
+	elseif ext == "ico" then
+		return "image/x-icon"
+	end
+	return nil, "Unknown"
+end
+
+
 function dbotPortal_processHttpRequest(user, method, vuri, headers)
 	local x, qs = vuri:match("^([^%?]*)(%?.*)")
 	if qs then
@@ -591,6 +609,13 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 							Web.webFile:close()
 							Web.webFile = nil
 						]==]
+						-- Set the content-type based on extension.
+						local ext = uvurl:match("%.(.*)$")
+						local ct = getContentTypeFromExt(ext)
+						if ct then
+							user.responseHeaders["Content-Type"] = ct
+							user.responseHeaders["X-Content-Type-Options"] = "nosniff"
+						end
 					end
 					-- dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrints)
 					local wenv
@@ -921,16 +946,10 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		-- Make sure not 2 slashes and not a dot after a slash.
 		if filename and not filename:find("/[/%.]") then
 			local ext = filename:match("%.(.*)$")
-			if ext == "js" then
-				user.responseHeaders["Content-Type"] = "application/javascript"
-			elseif ext == "json" then
-				user.responseHeaders["Content-Type"] = "application/json"
-			elseif ext == "css" then
-				user.responseHeaders["Content-Type"] = "text/css"
-			elseif ext == "html" or ext == "htm" or ext == "" or not ext then
-				user.responseHeaders["Content-Type"] = "text/html; charset=utf-8"
-			elseif ext == "ico" then
-				user.responseHeaders["Content-Type"] = "image/x-icon"
+			local ct = getContentTypeFromExt(ext)
+			if ct then
+				user.responseHeaders["Content-Type"] = ct
+				user.responseHeaders["X-Content-Type-Options"] = "nosniff"
 			end
 			local f, err
 			local encs = headers["Accept-Encoding"] or ""
