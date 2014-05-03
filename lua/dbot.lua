@@ -372,7 +372,7 @@ botExpectChannelBotCommand(cmdchar .. "guest", function(state, client, sender, t
 		client:sendMsg(chan, "Too many guest")
 		return
 	end
-	inguest = sender
+	inguest = chan
 	local guestacct = getGuestAccount()
 	
 	-- dbotHandleUserFunc(state, client, guestacct:fulladdress(), target, args)
@@ -1164,6 +1164,23 @@ function dbotSetupClient(client)
 	client.on["QUIT_CHAN"] = "dbotSeenLeave"
 
 	client.on["ACCOUNT"] = "dbotNetAcct"
+	
+	-- Hijack the sendNotice command to reject to $nicks.
+	-- Also send $guest to the dest.
+	client.realSendNotice = client.sendNotice
+	client.sendNotice = function(self, to, msg)
+		if type(to) == "string" and to:sub(1, 1) == '$' then
+			if to:lower() == "$guest" then
+				if inguest then
+					client:sendMsg(inguest, "Notice to $guest: " .. tostring(msg))
+					return
+				end
+			end
+			print("Attempted to send a notice to", to, "-", msg)
+			return
+		end
+		return self:realSendNotice(to, msg)
+	end
 end
 
 

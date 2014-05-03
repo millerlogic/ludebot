@@ -85,13 +85,15 @@ function codeformInfoAuthorName(user, vuri, qs, acct)
 end
 
 function checkIfSecureTR(user, vuri, qs, qacct)
-	local finfo = getUdfInfo(getval(qs, "module"), getval(qs, "name"))
-	if finfo then
-		if finfo.secure then
-			if vuri == "/t/edit" then
-				return "<tr><td colspan='3'><strong>WARNING: </strong>editing this function will no longer allow it to be called from a trusted context without re-approval!</td></tr>"
-			else
-				return "<tr><td colspan='3'>This function can be called from a trusted context</td></tr>"
+	if qs then
+		local finfo = getUdfInfo(getval(qs, "module"), getval(qs, "name"))
+		if finfo then
+			if finfo.secure then
+				if vuri == "/t/edit" then
+					return "<tr><td colspan='3'><strong>WARNING: </strong>editing this function will no longer allow it to be called from a trusted context without re-approval!</td></tr>"
+				else
+					return "<tr><td colspan='3'>This function can be called from a trusted context</td></tr>"
+				end
 			end
 		end
 	end
