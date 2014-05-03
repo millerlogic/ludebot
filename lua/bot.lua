@@ -197,11 +197,7 @@ function botCheckExists(name, value, ...)
 end
 
 
-function bot_privmsg(client, prefix, cmd, params)
-	internal.frandom() -- Randomize.
-	---- client:doDefaultServerAction(client, prefix, cmd, params)
-	local target = params[1]
-	local msg = params[2]
+function triggerBotPM(client, prefix, target, msg)
 	local chan = client:channelNameFromTarget(target)
 	local rv
 	if chan then
@@ -215,6 +211,15 @@ function bot_privmsg(client, prefix, cmd, params)
 		rv = botFireEvent("PM$me", client, prefix, target, msg)
 	end
 	return rv
+end
+
+
+function bot_privmsg(client, prefix, cmd, params)
+	internal.frandom() -- Randomize.
+	---- client:doDefaultServerAction(client, prefix, cmd, params)
+	local target = params[1]
+	local msg = params[2]
+	return triggerBotPM(client, prefix, target, msg)
 end
 
 

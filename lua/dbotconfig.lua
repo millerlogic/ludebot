@@ -331,20 +331,6 @@ function adminGetUserAccount(who)
 end
 
 
--- All parameters are optional.
-function getGuestAccount(nick, ident, addr)
-	local x = (nick or "Guest") .. '!' .. (ident or "guest") .. '@' .. (addr or "guest.")
-	local acct = {}
-	acct.creat = os.time()
-	acct.last = acct.creat
-	acct.faddr = x
-	-- acct.mask = x
-	acct.id = 28292717 -- "guest" in base 36
-	setmetatable(acct, accountMT)
-	return acct
-end
-
-
 -- Get account for the user, only if allowed via fulladdress.
 -- If demand is true, an account will be created.
 -- Returns (acct,msg) on success.
@@ -386,6 +372,19 @@ function getUserAccount(fulladdress, demand)
 		end
 	end
 	return nil, "Invalid user info"
+end
+
+
+-- All parameters are optional.
+function getGuestAccount(nick, ident, addr)
+	local guestnick = "$guest"
+	local acct = adminGetUserAccount(guestnick)
+	local x = (nick or guestnick) .. '!' .. (ident or "guest") .. '@' .. (addr or "guest.")
+	if not acct then
+		acct = assert(getUserAccount(guestnick .. "!guest@guest.", true))
+	end
+	acct.id = 28292717 -- "guest" in base 36
+	return acct
 end
 
 

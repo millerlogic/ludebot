@@ -336,6 +336,53 @@ botExpectChannelBotCommand(cmdchar .. "access", function(state, client, sender, 
 end)
 
 
+botExpectChannelBotCommand(cmdchar .. "trustfunc", function(state, client, sender, target, cmd, args)
+	local nick = nickFromSource(sender)
+	local chan = client:channelNameFromTarget(target)
+	local acct = getUserAccount(sender)
+	if acct and acct.id == 1 then
+		local funcarg = args:match("([^ ]+)")
+			local mod, func = args:match("([^%.]+)%.(.*)")
+		if mod then
+			local finfo = getUdfInfo(mod, func)
+			if finfo then
+				if finfo.secure then
+					client:sendMsg(chan, nick .. " * we already super trust that one")
+				else
+					finfo.secure = true
+					client:sendMsg(chan, nick .. " * we'll now super trust " .. mod .. "." .. func .. "!")
+					dbotDirty = true
+				end
+			else
+				client:sendMsg(chan, nick .. " * unknown function")
+			end
+		else
+			client:sendMsg(chan, nick .. " * bad command or file name")
+		end
+	else
+		client:sendMsg(chan, nick .. " * access denied")
+	end
+end)
+
+
+inguest = inguest or false
+botExpectChannelBotCommand(cmdchar .. "guest", function(state, client, sender, target, cmd, args)
+	local chan = client:channelNameFromTarget(target)
+	if inguest then
+		client:sendMsg(chan, "Too many guest")
+		return
+	end
+	inguest = sender
+	local guestacct = getGuestAccount()
+	
+	-- dbotHandleUserFunc(state, client, guestacct:fulladdress(), target, args)
+	-- Let's fire the event! This way it actually behaves like another client.
+	triggerBotPM(client, guestacct:fulladdress(), target, args)
+	
+	inguest = false
+end)
+
+
 function cmd_web(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
@@ -1008,6 +1055,7 @@ dbotCronTimer:start()
 
 
 function handleDbotUserNetAcct(client, prefix, xnetacct)
+	local good = false
 	local nick = nickFromSource(prefix)
 	if client:network() and client:network() ~= "Unknown" then -- Must be a network name.
 		if xnetacct and xnetacct ~= '*' and xnetacct ~= '0' then -- net acct provided by JOIN cmd.
@@ -1020,6 +1068,7 @@ function handleDbotUserNetAcct(client, prefix, xnetacct)
 							print("Granting " .. nick .. " access due to network account=" .. netacct)
 							acct.faddr = prefix
 							dbotDirty = true
+							good = true
 						else
 							print("Denying " .. nick .. " access due to network account mismatch")
 						end
@@ -1029,9 +1078,23 @@ function handleDbotUserNetAcct(client, prefix, xnetacct)
 						print("Setting " .. nick .. " netacct_" .. client:network() .. "=" .. xnetacct)
 						acct["netacct_" .. client:network()] = xnetacct
 						dbotDirty = true
+						good = true
 					end
 				end
 			end
+			--[[ -- Test/finish reID.
+			if not good then
+				-- Now try to figure shit based on network account.
+				local xacct, xnick = getUserAccountByNetAcct(client:network(), xnetacct)
+				if xacct then
+					print("We found this network account=" .. xnetacct .. " belongs to=" .. xnick)
+					if not acct then
+						acct = adminGetUserAccount(prefix, true) -- Demand.
+						acct.reID = xacct.id -- Redirect the ID.
+					end
+				end
+			end
+			--]]
 		end
 	end
 end

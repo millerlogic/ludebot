@@ -624,7 +624,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		allCodeTrusted = false
 		whyNotCodeTrusted = "loadstring"
 		local guestnick = "$guest"
-		local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.guest", true)) -- demand
+		-- local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.", true)) -- demand
+		local guestacct = assert(getGuestAccount()) -- demand
 		return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
 	end
 
