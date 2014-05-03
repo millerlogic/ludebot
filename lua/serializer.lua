@@ -31,6 +31,8 @@ function entry(k, v, level, file)
 				file:write("[", k, "]=", v, ",\n")
 			elseif vtype == "string" then
 				file:write(string.format("[%s]=%q,\n", k, v))
+			elseif vtype == "boolean" then
+				file:write(string.format("[%s]=%s,\n", k, tostring(v)))
 			end
 		elseif ktype == "string" then
 			if k:find("^%a[%a%d_]*$") then
@@ -38,12 +40,16 @@ function entry(k, v, level, file)
 					file:write(k, "=", v, ",\n")
 				elseif vtype == "string" then
 					file:write(string.format("%s=%q,\n", k, v))
+				elseif vtype == "boolean" then
+					file:write(string.format("%s=%s,\n", k, tostring(v)))
 				end
 			else
 				if vtype == "number" then
 					file:write(string.format("[%q]=%s,\n", k, v))
 				elseif vtype == "string" then
 					file:write(string.format("[%q]=%q,\n", k, v))
+				elseif vtype == "boolean" then
+					file:write(string.format("[%q]=%s,\n", k, tostring(v)))
 				end
 			end
 		end
@@ -88,6 +94,7 @@ end
 -- source can be a filename, a file object,
 -- any object with a :read() method,
 -- or a string returned from serialize.
+-- Warning: any code will be executed!
 function deserialize(source)
 	local file
 	local tt = "file"
@@ -133,7 +140,8 @@ end
 
 
 function serializer_Test()
-	local t = { 33, hello = 3, [99] = 99, ["list!"] = { 5, 4, 3, 2, 1 }, ["x*x"] = "x\"'''\n" }
+	local t = { 33, hello = 3, [99] = 99, ["list!"] = { 5, 4, 3, 2, 1 },
+		["x*x"] = "x\"'''\n", mybool = true, ["your-bool"] = false }
 	local s = assert(serialize(t))
 	print("serialize = `" .. s .. "`")
 	local t2 = deserialize(s)
@@ -142,6 +150,7 @@ function serializer_Test()
 			assert(t2[k] == v)
 		end
 	end
+	print("serializer_Test PASS")
 end
 
 -- serializer_Test() -- Run test.
