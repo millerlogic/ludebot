@@ -1174,6 +1174,7 @@ function dbotSetupClient(client)
 	
 	-- Hijack the sendNotice command to reject to $nicks.
 	-- Also send $guest to the dest.
+	--[[ -- CAUSING INFINITE LOOP!!!
 	client.realSendNotice = client.sendNotice
 	client.sendNotice = function(self, to, msg)
 		if type(to) == "string" and to:sub(1, 1) == '$' then
@@ -1188,6 +1189,7 @@ function dbotSetupClient(client)
 		end
 		return self:realSendNotice(to, msg)
 	end
+	--]]
 end
 
 
