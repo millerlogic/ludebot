@@ -19,12 +19,4 @@ sudo make install
 ```
 If the above cannot find your lua include headers, try make without the INCLUDES=..., or change it based on where the dev headers are on your system.
 
-* Finally, launch the bot for the first time with extra one-time config switch -flag=firstrun.
-
-First run:
-```../../irccmd/irccmd server.com testludebot "-input:RUN=$RUN {1+}" -flag=firstrun -load=ludebot/lua/dbotloader.lua```
-
-Subsequent launches do not need the extra -flag=firstrun switch.
-
-Subsequent runs:
-```../../irccmd/irccmd server.com testludebot "-input:RUN=$RUN {1+}" -load=ludebot/lua/dbotloader.lua```
+* Finally, launch the bot. See the steps in the file dbotloader.lua
