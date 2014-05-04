@@ -7,6 +7,7 @@ require "cache"
 require "http"
 require "html"
 require "timers"
+include "bit"
 
 dbotReqs = {
 	"bot",
@@ -108,15 +109,12 @@ end
 
 function doReload(extra)
 	for i, req in ipairs(dbotReqs) do
-		dofile(req .. ".lua")
+		package.loaded[req] = nil
+		require(req)
 	end
 	for i, req in ipairs(dbotIncs) do
-		local fn = req .. ".lua"
-		local f = io.open(fn)
-		if f then
-			f:close()
-			dofile(fn)
-		end
+		package.loaded[req] = nil
+		include(req)
 	end
 	if extra then
 		assert(not extra:find("/", 1, true))
@@ -124,13 +122,22 @@ function doReload(extra)
 			if x == "@chatbot" then
 				chatbot = nil
 				collectgarbage()
-				dofile("newlorem.lua")
+				local req = "newlorem"
+				package.loaded[req] = nil
+				require(req)
 			else
-				dofile(x)
+				local req = x:match("(.*)%.lua$") or x
+				package.loaded[req] = nil
+				require(req)
 			end
 		end
 	end
-	dofile('dbot.lua') -- Now reload self!
+	do
+		-- Now reload self!
+		local req = "dbot"
+		package.loaded[req] = nil
+		require(req)
+	end
 	collectgarbage()
 end
 
@@ -1146,7 +1153,7 @@ function dbotSeenLeave(client, prefix, cmd, params)
 end
 
 
--- Note: this is also called on \reload or dofile.
+-- Note: this is also called on reload.
 function dbotSetupClient(client)
 	-- Capabilities: http://ircv3.atheme.org/specification/capability-negotiation-3.1
 	client:sendLine("CAP REQ :extended-join account-notify")

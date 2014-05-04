@@ -2,9 +2,8 @@
 -- License: GPLv3, see LICENSE file.
 
 
--- irccmd irc.freenode.net armleg "-input:RUN=$RUN {1+}" -load=ircnicklist.lua -load=armleg.lua
+-- irccmd irc.freenode.net armleg "-input:RUN=$RUN {1+}" -load=gamearmleg.lua
 
--- /run dofile('armleg.lua')
 
 
 require("serializer")
@@ -34,7 +33,7 @@ if (not internal or internal._icDebug) and not _armlegDebug then
 	_armlegDebug = true
 	-- debugPPRIVMSG = "$="
 	debugPPRIVMSG = "$flip heads"
-	dofile("internal.lua")
+	require("internal")
 
 	--[[
 	Timer = function(secs, func)

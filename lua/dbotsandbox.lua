@@ -1855,7 +1855,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	env._jxparse = function(src)
 		-- if not jxToLua then
-			dofile("jxparse.lua")
+			local req = "jxparse"
+			package.loaded[req] = nil
+			require(req)
 		-- end
 		if not src then
 			env.print(jxLuaDependencies())
