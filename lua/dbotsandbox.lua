@@ -494,6 +494,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			allCodeTrusted = false
 			whyNotCodeTrusted = "loadstring"
 			-- nontrustCallNum = nontrustCallNum + 1
+			trustedCodeAcctID = -1
 			local a, b = renv.loadstring(src, name)
 			if a then
 				local xenv = {}
@@ -509,6 +510,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			allCodeSecure = false
 			allCodeTrusted = false
 			whyNotCodeTrusted = "loadstring"
+			trustedCodeAcctID = -1
 			-- nontrustCallNum = nontrustCallNum + 1
 			local a, b = renv.loadstring(src, name)
 			if a then
@@ -522,6 +524,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			allCodeTrusted = false
 			whyNotCodeTrusted = "loadstring"
 			-- nontrustCallNum = nontrustCallNum + 1
+			assert(not trustedCodeAcctID or trustedCodeAcctID == 1, "Context not trusted")
 			if finfo.acctID == 1 then
 				return renv.loadstring(src, name)
 			else
@@ -628,6 +631,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		allCodeTrusted = false
 		whyNotCodeTrusted = "loadstring"
 		-- nontrustCallNum = nontrustCallNum + 1
+		trustedCodeAcctID = -1
 		local guestnick = "$guest"
 		-- local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.", true)) -- demand
 		local guestacct = assert(getGuestAccount()) -- demand
@@ -654,7 +658,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		m.cmdprefix = m.cmdchar or ("'" .. modname .. ".")
 		m.findFunc = function(pat, want, orig)
-			assert(type(pat) == "string", "Pattern string expected")
+			-- assert(type(pat) == "string", "Pattern string expected")
+			pat = pat or '.*'
 			local udf = dbotData["udf"]
 			local m = udf[modname]
 			local t = {}
@@ -727,6 +732,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 								allCodeTrusted = false
 								whyNotCodeTrusted = fname
 								-- nontrustCallNum = nontrustCallNum + 1
+								trustedCodeAcctID = -1
 							end
 						else
 							trustedCodeAcctID = finfo.acctID
@@ -2186,6 +2192,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			allCodeTrusted = false
 			whyNotCodeTrusted = "loadstring"
 			-- nontrustCallNum = nontrustCallNum + 1
+			trustedCodeAcctID = -1
 			local a, b = envloadstring(src, name)
 			if a then
 				setfenv(a, renv)
@@ -2199,6 +2206,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			allCodeTrusted = false
 			whyNotCodeTrusted = "loadstring"
 			-- nontrustCallNum = nontrustCallNum + 1
+			trustedCodeAcctID = -1
 			local _ENV = {}
 			_ENV._G = _ENV
 			local a, b = envloadstring(src, name)
@@ -2214,6 +2222,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			allCodeTrusted = false
 			whyNotCodeTrusted = "loadstring"
 			-- nontrustCallNum = nontrustCallNum + 1
+			trustedCodeAcctID = -1
 			return loadstringAsGuest(src, name or 'user.loadstring')
 		end
 		env.guestloadstring = renv.guestloadstring
@@ -2432,8 +2441,9 @@ function outputPrintConvert(sourceType, convType, s, lineBased)
 			end
 		end
 
-		if lineBased ~= false then
-			if convType == 'html' then
+		if convType == 'html' then
+			s = s:gsub("\r?\n", "<br>")
+			if lineBased ~= false then
 				s = s .. "<br>"
 			end
 		end
