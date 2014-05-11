@@ -400,6 +400,18 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	local whyNotCodeTrusted = nil -- See hlp.whyNotCodeTrusted
 	local trustedCodeAcctID = nil -- Note: not set for secure code.
 	-- local nontrustCallNum = 0 -- Updated for each non-trusted function load.
+	
+	local hist = getChatHistory(client, chan or sender)
+	local last
+	if hist then
+		last = hist:get(2) -- 1 is what requested this, so 2 is previous.
+	end
+	LocalCache.lastmsg = nil
+	LocalCache.lastmsgnick = nil
+	if last then
+		LocalCache.lastmsg = last.msg
+		LocalCache.lastmsgnick = last.who
+	end
 
 	-- G might be renv or fenv.
 	local function gpairs(G)
@@ -1076,6 +1088,32 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return finfo.calls or 0, finfo.lastcall or 0, finfo.time or 0, finfo.acctID
 	end
+	hlp._getHistory = "Get a message from the chat history, returns: message, nick, time. If an index is provided, 1 is the last message, 2 is the one before it, etc."
+	env._getHistory = function(index)
+		index = index or 1
+		local nohist = "History not found"
+		if not hist then
+			return nil, nohist
+		end
+		local mintime = math.huge
+		local nl = client:nicklist(chan)
+		if nl then
+			local no = nl[nick]
+			if no then
+				mintime = no.joined or 0
+			end
+		end
+		local h = hist:get(index + 1) -- Offset by 1, so that we start at last. Also allow 0+1.
+		if not h then
+			return nil, nohist
+		end
+		if index > 1 then
+			if h.time < mintime then
+				return nil, nohist
+			end
+		end
+		return h.msg, h.who, h.time
+	end
 	local notices = nil -- Can only send 1 notice per user.
 	hlp.sendNotice = "Send an IRC notice message to a user. Limitations apply."
 	env.sendNotice = function(to, msg)
@@ -1140,14 +1178,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				nprintlines = nprintlines + 1
 				local act = uln:match("^\001[Aa][Cc][Tt][Ii][Oo][Nn] ([^\001]+)")
 				if act then
-					-- client:sendMsg(dest, "\001ACTION " .. safeString(act) .. "\001", "dbotSandbox")
-					client:sendMsg(dest, "\001ACTION " .. outputPrintConvert(src, conv, safeString(act)) .. "\001", "dbotSandbox")
+					local x = outputPrintConvert(src, conv, safeString(act))
+					client:sendMsg(dest, "\001ACTION " .. x .. "\001", "dbotSandbox")
 				else
-					-- client:sendMsg(dest, safeString(uln), "dbotSandbox")
 					local x = outputPrintConvert(src, conv, safeString(uln))
 					client:sendMsg(dest, x, "dbotSandbox")
-					LocalCache.lastmsgnick = client:nick()
-					LocalCache.lastmsg = x
 				end
 			end
 		end

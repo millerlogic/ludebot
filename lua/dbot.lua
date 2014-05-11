@@ -7,6 +7,7 @@ require "cache"
 require "http"
 require "html"
 require "timers"
+require "circletable"
 include "bit"
 
 dbotReqs = {
@@ -52,6 +53,39 @@ if NewLorem and not chatbot then
 			t:stop()
 		end
 	end):start()
+end
+
+
+chatHistories = chatHistories or {} -- Indexed by lowercase destination.
+
+---
+function getChatHistory(client, dest, demand)
+	if type(dest) == "string" then
+		local realdest = client:network() .. "\1" .. dest:lower()
+		local chist = chatHistories[realdest]
+		if not chist then
+			if not demand then
+				return nil, "No chat history"
+			end
+			local max = 5
+			if dest:sub(1, 1) == '#' then
+				max = 20
+			end
+			chist = CircleTable(max)
+			chatHistories[realdest] = chist
+		end
+		return chist
+	end
+	return nil, "Invalid"
+end
+
+--- Adds table with: who, msg, time.
+function addChatHistory(client, dest, who, msg)
+	if type(dest) == "string" then
+		msg = msg:sub(1, 512)
+		local chist = getChatHistory(client, dest, true)
+		chist:add({ who = who, msg = msg, time = os.time() })
+	end
 end
 
 
@@ -766,7 +800,7 @@ end
 
 
 function blurb(s)
-	local max = 80
+	local max = 128
 	local origlen = s:len()
 	if origlen > max then
 		s = s:sub(1, max - 5) .. s:sub(max - 5 + 1):match("^[^,%.! %-]*"):sub(1, 12)
@@ -778,12 +812,25 @@ function blurb(s)
 end
 
 
+-- Note: now this is also called on OUTGOING messages!
 function dbotSeenPrivmsg(client, prefix, cmd, params)
 	local target = params[1]
 	local msg = params[2]
 	local chan = client:channelNameFromTarget(target)
+	local nick = nickFromSource(prefix)
+	local dest = chan or nick
+	
+	local logmsg = msg
+	local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")
+	if ctcp then
+		if ctcp:upper() == "ACTION" then
+			logmsg = nick .. " " .. msg
+			return -- Don't bother keeping track of other CTCP here.
+		end
+	end
+	
 	if chan then
-		local nick = nickFromSource(prefix)
+		-- To a channel.
 		do
 			-- on_activity
 			local so = findSeen(client:network(), chan, nick)
@@ -793,19 +840,14 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 				end, nil, true)
 			end
 		end
-		local lc = getCache('local:' .. (chan or nick or ''), true)
-		lc.lastmsgnick = nick
-		lc.lastmsg = msg
-		local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")
-		if ctcp then
-			if ctcp:upper() == "ACTION" then
-				addSeen(client, chan, prefix,
-					"say \"" .. nickFromSource(prefix) .. " " .. blurb(msg) .. "\"")
-			end
-		else
-			addSeen(client, chan, prefix,
-				"say \"" .. blurb(msg) .. "\"")
-		end
+		addSeen(client, chan, prefix,
+			"say \"" .. blurb(logmsg) .. "\"")
+		addChatHistory(client, dest, nick, logmsg)
+	else
+		-- Not to a channel.
+		-- Use prefix (full address) in PM, so that hijacking doesn't happen.
+		-- DOES NOT WORK FOR OUTGOING MESSAGES! prefix would be the bot, dest wouldn't have full addr.
+		-- addChatHistory(client, prefix, nick, logmsg)
 	end
 end
 
@@ -1162,7 +1204,7 @@ function dbotSetupClient(client)
 	client:sendLine("JOIN #dbot")
 	-- client:sendLine("MODE " .. client:nick() .. " -i") -- nick isn't setup yet
 
-	client.on["PRIVMSG"] = "dbotSeenPrivmsg"
+	client.on["^PRIVMSG"] = "dbotSeenPrivmsg"
 	client.on["JOIN"] = "dbotOnJoin"
 	-- client.on["NICK"] = "dbotOnNick"
 	client.on["NICK_CHAN"] = "dbotOnNickChan"
@@ -1172,24 +1214,32 @@ function dbotSetupClient(client)
 
 	client.on["ACCOUNT"] = "dbotNetAcct"
 	
+	if not client.seenSendMsg then
+		client.seenSendMsg = client.sendMsg
+		client.sendMsg = function(self, to, msg, ...)
+			self:seenSendMsg(to, msg, ...)
+			dbotSeenPrivmsg(client, client:nick(), "PRIVMSG", { to, msg })
+		end
+	end
+	
 	-- Hijack the sendNotice command to reject to $nicks.
 	-- Also send $guest to the dest.
-	--[[ -- CAUSING INFINITE LOOP!!!
-	client.realSendNotice = client.sendNotice
-	client.sendNotice = function(self, to, msg)
-		if type(to) == "string" and to:sub(1, 1) == '$' then
-			if to:lower() == "$guest" then
-				if inguest then
-					client:sendMsg(inguest, "Notice to $guest: " .. tostring(msg))
-					return
+	if not client.dollarSendNotice then
+		client.dollarSendNotice = client.sendNotice
+		client.sendNotice = function(self, to, msg)
+			if type(to) == "string" and to:sub(1, 1) == '$' then
+				if to:lower() == "$guest" then
+					if inguest then
+						client:sendMsg(inguest, "Notice to $guest: " .. tostring(msg))
+						return
+					end
 				end
+				print("Attempted to send a notice to", to, "-", msg)
+				return
 			end
-			print("Attempted to send a notice to", to, "-", msg)
-			return
+			return self:dollarSendNotice(to, msg)
 		end
-		return self:realSendNotice(to, msg)
 	end
-	--]]
 end
 
 
