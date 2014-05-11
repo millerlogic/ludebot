@@ -51,7 +51,7 @@ function CircleTable:iterating(index)
 end
 
 --- Returns iterator: for entry in obj:each() do end
---- Do not modify the object during iteration.
+--- Do not add to the circle table during iteration.
 function CircleTable:each()
 	return self.iterating, self, 0
 end
