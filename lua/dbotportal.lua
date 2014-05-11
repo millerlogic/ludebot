@@ -981,6 +981,9 @@ end
 
 function dbotPortal:onHttpRequest(user, method, vuri, headers)
 -- function dbotPortal:onHttpRequestCoro(user, method, vuri, headers)
+	if user.userAddress == "127.0.0.1" and headers["X-Forwarded-For"] then
+		user.userAddress = headers["X-Forwarded-For"]
+	end
 	print("dbotPortal request from " .. user.userAddress, method, vuri)
 	if internal and internal.memory_limit then
 		-- internal.memory_limit(1024 * 1024 * 4)
