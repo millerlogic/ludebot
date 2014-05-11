@@ -34,7 +34,7 @@ if not dbotPortal then
 	-- Note: currently no timeout for slow user clients.
 end
 
-dbotPortalURL = "http://" .. dbotPortalHost .. ":" .. dbotPortalPort .. "/"
+dbotPortalURL = dbotPortalForceURL or "http://" .. dbotPortalHost .. ":" .. dbotPortalPort .. "/"
 
 
 function dbotPortal:onHttpUserConnected(user)
