@@ -1798,6 +1798,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		local timeout
 		if type(a) == "table" then
 			t = a
+			assert(type(t[1]) ~= "table", "got a table in a table, table with strings expected")
 			timeout = b
 		else
 			t = {}
@@ -1806,12 +1807,14 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				if type(v) == "number" then
 					timeout = v
 				else
+					assert(type(v) == "string", "string expected")
 					table.insert(t, v)
 				end
 			end
 		end
+		local maxTimeout = 90
 		timeout = timeout or 20
-		assert(type(timeout) == "number" and timeout >= 0 and timeout <= 90, "Invalid reenter timeout")
+		assert(type(timeout) == "number" and timeout >= 0 and timeout <= maxTimeout, "Invalid reenter timeout")
 		local event
 		if chan then
 			event = "PM#:" .. chan
@@ -1821,12 +1824,14 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		local time = os.time()
 		botRemoveCheck(function(state)
 			if state.dbotReenter and state.dbotReenter == dest then
-				if state.time < time - 80 then
+				if state.time < time - maxTimeout then
 					print("WARNING: Removing expired reenter()")
 					return false -- Remove it.
 				end
 				if state.dbotReenter and state.func_name == func_name then
 					-- Remove another duplicate reenter for the same function.
+					-- Note: this will likely remove 2 events, one for the PM and other for timeout.
+					print("Removing duplicate reenter for the same dest and function", dest, func_name)
 					return false
 				end
 			end
@@ -1835,8 +1840,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			-- Just clear and return if no words to reenter on.
 			return true
 		end
+		print("Setting up reenter for", dest, func_name, "with words", t[1], t[2], "...")
 		local tmr
-		local state = { dbotReenter = dest, time = time, func_name = func_name }
+		local state = { dbotReenter = dest, time = time, func_name = func_name, when = os.time() }
 		botExpect(event, function(state, client, sender, target, msg)
 			local inick = nickFromSource(sender)
 			local ichan = client:channelNameFromTarget(target)
@@ -1861,14 +1867,14 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 						end
 						botRemove(state)
 						dbotRunSandboxHooked(client, sender, target,
-							state.func_name .. "([=========[" .. msg .. "]=========], '-reenter')")
+							state.func_name .. "([=========[" .. msg .. "]=========], '-reenter', " .. state.when .. ")")
 					end
 				end
 			end
 		end, state)
 		-- tmr = Timer(timeout, )
 		-- tmr:start()
-		local tmrstate = { dbotReenter = dest, time = time, func_name = func_name }
+		local tmrstate = { dbotReenter = dest, time = time, func_name = func_name, when = os.time() }
 		botWait(timeout, function()
 				if tmr then
 					tmr:stop()
@@ -1887,16 +1893,16 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 						end
 					end)
 				dbotRunSandboxHooked(client, sender, target,
-					state.func_name .. "('-timeout', '-reenter')", function(env)
+					state.func_name .. "('-timeout', '-reenter', " .. state.when .. ")", function(env)
 							env.reenterFunc = function()
 								return false, "Cannot reenter after timeout"
 							end
 						end)
-			end)
+			end, tmrstate)
 		tmr = tmrstate.timer
 		safeenv['os.exit']();
 	end
-	hlp.reenter = "Re-enters the current bot function when the specified words are used by someone. The current thread will also be terminated upon success, otherwise false,errmsg. A list of words is expected, and an optional maximum timeout in seconds, defaults to 20 seconds (max 90). When a user uses one of the words, the bot function is re-entered with the user's message, along with '-reenter' as the 2nd argument. If the timeout elapses first, the arguments are '-timeout' and '-reenter'. For safety/security reasons, when a timeout happens, reenter will fail until the function is manually invoked by a user."
+	hlp.reenter = "Re-enters the current bot function when the specified words are used by someone. The current thread will also be terminated upon success, otherwise false,errmsg. A list of words is expected, and an optional maximum timeout in seconds, defaults to 20 seconds (max 90). When a user uses one of the words, the bot function is re-entered with the user's message, along with '-reenter' as the 2nd argument. If the timeout elapses first, the arguments are '-timeout' and '-reenter'. The 3rd argument is always the time when reenter was called. For safety/security reasons, when a timeout happens, reenter will fail until the function is manually invoked by a user."
 	env.reenter = function() return false, "Cannot re-enter at the global level" end
 	env._clown = function()
 		client = ircclients[1]

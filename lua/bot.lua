@@ -62,6 +62,7 @@ local function botRemoveX(removeState, prevState)
 	if botStateLast == removeState then
 		botStateLast = prevState
 	end
+	removeState.removed = true
 	return true
 end
 
@@ -162,12 +163,16 @@ function botWait(seconds_timeout, func, state)
 	state = state or {}
 	state.type = "wait"
 	state.timer = Timer(seconds_timeout, function(timer)
+		local wasremoved = state.removed
 		timer:stop()
 		-- botRemove(state) -- Done via stop now.
-		func(state)
+		if not wasremoved then
+			func(state)
+		end
 	end)
 	local realstop = state.timer.stop
 	state.timer.stop = function(self, ...)
+		-- print("TIMER STOP", debug.traceback())
 		botRemove(state)
 		realstop(self, ...)
 	end
