@@ -504,7 +504,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		fenv.safeloadstring = function(src, name)
 			allCodeSecure = false
 			allCodeTrusted = false
-			whyNotCodeTrusted = "loadstring"
+			if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 			-- nontrustCallNum = nontrustCallNum + 1
 			trustedCodeAcctID = -1
 			local a, b = renv.loadstring(src, name)
@@ -521,7 +521,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		fenv.unsafeloadstring = function(src, name)
 			allCodeSecure = false
 			allCodeTrusted = false
-			whyNotCodeTrusted = "loadstring"
+			if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 			trustedCodeAcctID = -1
 			-- nontrustCallNum = nontrustCallNum + 1
 			local a, b = renv.loadstring(src, name)
@@ -534,9 +534,12 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		fenv.godloadstring = function(src, name)
 			allCodeSecure = false
 			allCodeTrusted = false
-			whyNotCodeTrusted = "loadstring"
 			-- nontrustCallNum = nontrustCallNum + 1
-			assert(not trustedCodeAcctID or trustedCodeAcctID == 1, "Context not trusted")
+			if not (not trustedCodeAcctID or trustedCodeAcctID == 1) then
+				-- LocalCache.godloadstring_whyNotCodeTrusted = whyNotCodeTrusted
+				error("Context not trusted")
+			end
+			if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 			if finfo.acctID == 1 then
 				return renv.loadstring(src, name)
 			else
@@ -641,7 +644,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	local function loadstringAsGuest(code, name)
 		allCodeSecure = false
 		allCodeTrusted = false
-		whyNotCodeTrusted = "loadstring"
+		if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 		-- nontrustCallNum = nontrustCallNum + 1
 		trustedCodeAcctID = -1
 		local guestnick = "$guest"
@@ -2225,7 +2228,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		renv.loadstring = function(src, name)
 			allCodeSecure = false
 			allCodeTrusted = false
-			whyNotCodeTrusted = "loadstring"
+			if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 			-- nontrustCallNum = nontrustCallNum + 1
 			trustedCodeAcctID = -1
 			local a, b = envloadstring(src, name)
@@ -2239,7 +2242,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		renv.safeloadstring = function(src, name)
 			allCodeSecure = false
 			allCodeTrusted = false
-			whyNotCodeTrusted = "loadstring"
+			if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 			-- nontrustCallNum = nontrustCallNum + 1
 			trustedCodeAcctID = -1
 			local _ENV = {}
@@ -2255,7 +2258,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		renv.guestloadstring = function(src, name)
 			allCodeSecure = false
 			allCodeTrusted = false
-			whyNotCodeTrusted = "loadstring"
+			if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 			-- nontrustCallNum = nontrustCallNum + 1
 			trustedCodeAcctID = -1
 			return loadstringAsGuest(src, name or 'user.loadstring')
