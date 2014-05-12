@@ -382,17 +382,26 @@ botExpectChannelBotCommand(cmdchar .. "trustfunc", function(state, client, sende
 	local chan = client:channelNameFromTarget(target)
 	local acct = getUserAccount(sender)
 	if acct and acct.id == 1 then
-		local funcarg = args:match("([^ ]+)")
-			local mod, func = args:match("([^%.]+)%.(.*)")
+		local dash, mod, func = args:match("(%-?)([^%.]+)%.(.*)")
 		if mod then
 			local finfo = getUdfInfo(mod, func)
 			if finfo then
 				if finfo.secure then
-					client:sendMsg(chan, nick .. " * we already super trust that one")
-				else
-					finfo.secure = true
-					client:sendMsg(chan, nick .. " * we'll now super trust " .. mod .. "." .. func .. "!")
+					if dash == "-" then
+						finfo.secure = nil
+						client:sendMsg(chan, nick .. " * no longer super trust " .. mod .. "." .. func .. "!")
 					dbotDirty = true
+					else
+						client:sendMsg(chan, nick .. " * we already super trust that one")
+					end
+				else
+					if dash == "-" then
+						client:sendMsg(chan, nick .. " * we already don't trust that one")
+					else
+						finfo.secure = true
+						client:sendMsg(chan, nick .. " * we'll now super trust " .. mod .. "." .. func .. "!")
+						dbotDirty = true
+					end
 				end
 			else
 				client:sendMsg(chan, nick .. " * unknown function")
