@@ -426,10 +426,19 @@ function getname(id)
 	if id == 0 then
 		return "$root"
 	end
-	for k, v in pairs(dbotData.login) do
-		if id == v.id then
-			setmetatable(v, accountMT)
-			return v:nick()
+	if id > 0 and math.floor(id) == id then
+		local foundmore = false
+		for k, v in pairs(dbotData.login) do
+			if id == v.id then
+				setmetatable(v, accountMT)
+				return v:nick()
+			end
+			if v.id ~= 28292717 and v.id > id then
+				foundmore = true
+			end
+		end
+		if foundmore then
+			return tostring(id)
 		end
 	end
 	return nil, 'No such user'
