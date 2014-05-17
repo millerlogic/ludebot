@@ -359,6 +359,8 @@ function worth(who)
 end
 
 
+-- Note: the code should load a security context (e.g. run an etc function) ASAP,
+-- otherwise the code is considered trusted and secure (allCodeTrusted, allCodeSecure).
 function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPrints, noerror)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target) -- could be nil!
@@ -647,10 +649,32 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		if not whyNotCodeTrusted then whyNotCodeTrusted = "loadstring" end
 		-- nontrustCallNum = nontrustCallNum + 1
 		trustedCodeAcctID = -1
-		local guestnick = "$guest"
+		-- local guestnick = "$guest"
 		-- local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.", true)) -- demand
 		local guestacct = assert(getGuestAccount()) -- demand
+		local guestnick = guestacct:nick()
 		return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
+	end
+	
+	-- Note: this function is directly callable by sandbox user.
+	-- This is equiv to calling a user's function which does nothing but check trust.
+	local function _strust(acctID, isSecure, fname)
+		assert(not fname or type(fname) == "string")
+		acctID = tonumber(acctID) or -101
+		if not isSecure then
+			allCodeSecure = false
+			if trustedCodeAcctID then
+				if trustedCodeAcctID ~= acctID then
+					allCodeTrusted = false
+					whyNotCodeTrusted = fname or whyNotCodeTrusted or "_strust"
+					-- nontrustCallNum = nontrustCallNum + 1
+					trustedCodeAcctID = -1
+				end
+			else
+				trustedCodeAcctID = acctID
+				-- print("Trusted account set to", trustedCodeAcctID)
+			end
+		end
 	end
 
 	--if acct then
@@ -740,19 +764,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				local finfo = getUdfInfo(modname, k)
 				if finfo then
 					local fname = modname .. "." .. k
-					if not finfo.secure then
-						allCodeSecure = false
-						if trustedCodeAcctID then
-							if trustedCodeAcctID ~= finfo.acctID then
-								allCodeTrusted = false
-								whyNotCodeTrusted = fname
-								-- nontrustCallNum = nontrustCallNum + 1
-								trustedCodeAcctID = -1
-							end
-						else
-							trustedCodeAcctID = finfo.acctID
-						end
-					end
+					_strust(finfo.acctID, finfo.secure, fname)
 					local fcode, err = loadUdfCode(finfo)
 					if not fcode then
 						print(fname, err)
@@ -1080,6 +1092,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return r
 	end
+	-- hlp._strust = "Updates allCodeTrusted() and allCodeSecure() based on the provided user account ID."
+	env._strust = _strust
 	hlp._getCallInfo = "Get details about a user function. Input: moduleName, funcName; Returns: #calls, lastcall time, modified time, owner ID"
 	env._getCallInfo = function(moduleName, funcName)
 		if not moduleName then
@@ -1908,6 +1922,12 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		client = ircclients[1]
 		chan = "#clowngames"
 		dest = chan
+	end
+	hlp._guest = "Change nick and account to the guest user. Does not change the security context, this remains the original owner. Use guestloadstring(code) to change the security context for code."
+	env._guest = function()
+		local guestacct = assert(getGuestAccount()) -- demand
+		nick = guestacct:nick()
+		nickaccount = guestacct.id
 	end
 	env._jxparse = function(src)
 		-- if not jxToLua then

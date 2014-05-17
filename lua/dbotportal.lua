@@ -360,6 +360,8 @@ end
 function dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrints)
 	local compiledGood
 	if code then
+		assert(acct and acct.id, "No acct")
+		code = "_strust(" .. acct.id .. ", false, 'web'); " .. code
 		local fakeclient = {}
 		-- Using the first irc client as the fallback client.
 		-- Warning: this could cause stuff to be sent to the wrong server.
@@ -815,8 +817,8 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 						-- compile it and see output!...
 						local output = {}
 						local fakeHttpGetCallback
-						-- dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrints)
-						dbotRunWebSandboxHooked(acct, code, function(line)
+						local runcode = modname .. "." .. funcname .. "()"
+						dbotRunWebSandboxHooked(acct, runcode, function(line)
 							table.insert(output, line)
 						end, function(env)
 							env.Editor = {}
