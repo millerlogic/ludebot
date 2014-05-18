@@ -30,6 +30,7 @@ dbotIncs = { -- TODO: move to config.
 	-- "loremconn",
 	"prepare_wordlists",
 	"wordlists",
+	"lmnode",
 }
 for i, req in ipairs(dbotIncs) do
 	include(req)
