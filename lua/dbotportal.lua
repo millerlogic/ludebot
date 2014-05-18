@@ -231,64 +231,18 @@ end
 -- acct is owner's account; required.
 -- code is code to run; required.
 -- outputFunc is called on each line of output; required.
-function dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrints)
+function dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrints, allowHttp)
 	local compiledGood
 	if code then
 		assert(acct and acct.id, "No acct")
-		code = "_strust(" .. acct.id .. ", false, 'web'); " .. code
-		local fakeclient = {}
-		-- Using the first irc client as the fallback client.
-		-- Warning: this could cause stuff to be sent to the wrong server.
-		-- However, it's intended not to send ANYTHING to the server from here.
-		setmetatable(fakeclient, { __index = ircclients[1] })
-		fakeclient.sendMsg = function(self, to, msg)
-			-- output = output .. msg .. "\n"
-			-- table.insert(output, msg)
-			outputFunc(msg)
-		end
-		fakeclient.sendNotice = function() end
-		fakeclient.sendLine = function() end
-		---- local fakeHttpGetCallback
-		local fakeTimeout1
-		local fakeTimeout2
-		compiledGood = dbotRunSandboxHooked(fakeclient,
+		code = "_strust(" .. acct.id .. ", false, 'web'); "
+			.. code
+			.. "\nif _unitDone then _unitDone() end"
+		local client = UnitClient(outputFunc)
+		compiledGood = dbotRunSandboxHooked(client,
 			acct:fulladdress(), "<chan>", code, function(env)
 				-- Patch up some of the functions in the user env.
-				env.names = function() end
-				local oldnicklist = env.nicklist
-				env.nicklist = function(where)
-					if type(where) == "string" then
-						return oldnicklist(where)
-					end
-				end
-				--[[
-				env.httpGet = function(url, callback)
-					if not callback or fakeHttpGetCallback then
-						return false, "Test error from Web httpGet"
-					end
-					fakeHttpGetCallback = callback
-					return true
-				end
-				--]]
-				env.sleep = function() end
-				env.setTimeout = function(func, ms)
-					-- Note: this logic is also in dbotRunSandboxHooked.
-					assert((type(func) == "function" or type(func) == "string"), "Bad arguments")
-					if type(func) == "string" then
-						func = assert(env.loadstring(func))
-					end
-					assert(ms <= 1000 *  20, "Timeout value too large")
-					if not fakeTimeout1 then
-						fakeTimeout1 = func
-					elseif not fakeTimeout2 then
-						fakeTimeout2 = func
-					else
-						error("Too many timers")
-					end
-				end
-				env.input = function() return nil, nil, "input timeout" end
-        env.reenterFunc = function() env.halt(); return false, "Cannot reenter from web" end
-        env.reenter = function() return env.reenterFunc() end
+				setUnitEnv(env, allowHttp)
 				env.Cache = getUserCache(acct:nick(), true)
 				-- env.arg[1] = "TestArg1" -- Doesn't set "..."
 				if finishEnvFunc then
@@ -296,34 +250,6 @@ function dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrint
 				end
 			end, maxPrints or 1000000)
 		-- Note: callback errors don't say anything.
-		continueMemLimitHooked(function()
-			--[=[
-			if fakeHttpGetCallback then
-				-- This will run in the user's env...
-				--[====[
-				fakeHttpGetCallback([[<html>
-<head>
-<title>Test Page</title>
-<style>
-body { margin: 0; background-color: white; color: black; }
-</style>
-</head>
-<body>
-<p>This is a test page&#x21;</p>
-</body>
-</html>]], "text/html", "utf-8")
-				--]====]
-				-- Instead, always error. Prevents issues with Cache etc.
-				fakeHttpGetCallback(nil, "Test error from Web httpGet")
-			end
-			--]=]
-			if fakeTimeout1 then
-				fakeTimeout1()
-				if fakeTimeout2 then
-					fakeTimeout2()
-				end
-			end
-		end, dbotMemLimit, dbotCpuLimit)
 	end
 end
 
@@ -553,7 +479,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 								end
 								return realprint(...)
 							end
-						end, 10000)
+						end, 10000, false)
 				end
 			end
 		else
@@ -690,40 +616,12 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 						end
 						-- compile it and see output!...
 						local output = {}
-						local fakeHttpGetCallback
 						local runcode = modname .. "." .. funcname .. "()"
 						dbotRunWebSandboxHooked(acct, runcode, function(line)
 							table.insert(output, line)
 						end, function(env)
 							env.Editor = {}
-							env.httpGet = function(url, callback)
-								if not callback or fakeHttpGetCallback then
-									return false, "Test error from Editor httpGet"
-								end
-								fakeHttpGetCallback = callback
-								return true
-							end
-						end, 250)
-						continueMemLimitHooked(function()
-							if fakeHttpGetCallback then
-								-- This will run in the user's env...
-								--[====[
-								fakeHttpGetCallback([[<html>
-				<head>
-				<title>Test Page</title>
-				<style>
-				body { margin: 0; background-color: white; color: black; }
-				</style>
-				</head>
-				<body>
-				<p>This is a test page&#x21;</p>
-				</body>
-				</html>]], "text/html", "utf-8")
-								--]====]
-								-- Instead, always error. Prevents issues with Cache etc.
-								fakeHttpGetCallback(nil, "Test error from Editor httpGet")
-							end
-						end, dbotMemLimit, dbotCpuLimit)
+						end, 250, false)
 						-- end compile
 						if code and (getval(post, "editor") or '1') ~= '1' then
 							-- editurl = editurl .. '&editor=' .. getval(post, "editor")
