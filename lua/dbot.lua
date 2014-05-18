@@ -202,35 +202,6 @@ botExpectChannelBotCommand(cmdchar .. "reload", function(state, client, sender, 
 end)
 
 
---[[ runFuncs doesn't exist anymore...
-botExpectChannelBotCommand(cmdchar .. "function", function(state, client, sender, target, cmd, args)
-	local nick = nickFromSource(sender)
-	local chan = client:channelNameFromTarget(target)
-	local fname, fremain = args:match("^%s*([%w]+)(%(.*)")
-	if not fname or not fremain then
-		client:sendMsg(chan, nick .. ": Invalid syntax")
-	else
-		local env = runFuncDummyEnv
-		internal.memory_limit(1024 * 4)
-		local ok, y = runSandboxHook("return function " .. fremain, nil, env)
-		internal.memory_limit(0)
-		if not ok then
-			client:sendMsg(chan, nick .. ": Script error: " .. safeString(y))
-		else
-			if type(env["return"]) ~= "function" then
-				client:sendMsg(chan, nick .. ": Not a function")
-			else
-				runFuncs[fname] = env["return"] -- uses this env
-				runFuncs["&" .. fname] = "function " .. fname .. fremain .. " -- Set by " .. sender
-				env["return"] = nil
-				client:sendMsg(chan, nick .. ": Added function " .. fname)
-			end
-		end
-	end
-end)
---]]
-
-
 function dbot_run(state, client, sender, target, cmd, args)
 	-- local nick = nickFromSource(sender)
 	-- local chan = client:channelNameFromTarget(target)
