@@ -1278,4 +1278,32 @@ end)
 flushTimer:start()
 
 
+--- A client not tied to any particular medium.
+--- Do not depend on the actual base class.
+UnitClient = class(IrcClient)
+
+--- outputFunc is optional, will be called when a message is sent.
+function UnitClient:init(outputFunc)
+	IrcClient.init(self)
+	self._outputFunc = outputFunc
+	-- This is not clean, but gets the job done for now:
+	self:setConnected()
+	self:onCommand(":server", "001", {""}) -- Need prefixSymbols.
+end
+
+function UnitClient:sendMsg(to, msg)
+	if self._outputFunc then
+		self._outputFunc(msg)
+	end
+end
+
+function UnitClient:connect()
+	return true
+end
+
+function UnitClient:sendNotice()
+end
+
+function UnitClient:sendLine()
+end
 

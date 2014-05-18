@@ -2515,3 +2515,59 @@ function outputPrintConvert(sourceType, convType, s, lineBased)
 	return s
 end
 
+
+--- Updates env for specific limitations.
+--- The env is assumed to be independent / isolated.
+--- allowInput not implemented yet.
+function setUnitEnv(env, allowHttp, allowSleep, allowInput)
+	env.names = function() end
+	local oldnicklist = env.nicklist
+	env.nicklist = function(where)
+		if type(where) == "string" then
+			return oldnicklist(where)
+		end
+	end
+	if not allowHttp then
+		env.httpGet = function(url, callback)
+			if not callback or fakeHttpGetCallback then
+				return false, "Test error from httpGet"
+			end
+			env._unit_http = callback
+			return true
+		end
+	end
+	if not allowSleep then
+		env.sleep = function() end
+		env.setTimeout = function(func, ms)
+			-- Note: this logic is also in dbotRunSandboxHooked.
+			assert((type(func) == "function" or type(func) == "string"), "Bad arguments")
+			if type(func) == "string" then
+				func = assert(env.loadstring(func))
+			end
+			assert(ms <= 1000 *  20, "Timeout value too large")
+			if not env._unit_timeout1 then
+				env._unit_timeout1 = func
+			elseif not env._unit_timeout1 then
+				env._unit_timeout1 = func
+			else
+				error("Too many timers")
+			end
+		end
+		-- Do NOT call _unitDone outside the sandbox!
+		env._unitDone = function()
+			if env._unit_http then
+				env._unit_http(nil, "Test error from httpGet")
+			end
+			if env._unit_timeout1 then
+				env._unit_timeout1()
+				if env._unit_timeout2 then
+					env._unit_timeout2()
+				end
+			end
+		end
+	end
+	env.input = function() return nil, nil, "input timeout" end
+	env.reenterFunc = function() env.halt(); return false, "Cannot reenter from web" end
+	env.reenter = function() return env.reenterFunc() end
+end
+
