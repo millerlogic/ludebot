@@ -132,7 +132,10 @@ function doErrorPrint(errprint, nick, msg)
 	end
 	msg = msg:match("^([^\r\n]+)")
 	if msg then
-		errprint(msg)
+		-- errprint(nick .. " * Script error: " .. msg)
+		-- errprint(nick .. " * " .. msg)
+		-- Strip off file name/number from beginning if present:
+		errprint("Error: " .. (msg:gsub("^%[[^%]]+%]:%d+: ", "") or ""))
 	end
 end
 
@@ -143,15 +146,14 @@ function dbotResume(res, ...)
 	internal.memory_limit(0, res.coro)
 	if not ok then
 		if type(y) ~= "string" then
-			doErrorPrint(res.errprint, res.nick, res.nick .. ": Script error (" .. type(y) .. ")")
+			doErrorPrint(res.errprint, res.nick, "(" .. type(y) .. ")")
 			return false
 		elseif res.timeoutstr and y == "Run timeout{E6A0C4BD-75DC-4313-A1AF-7666ED28545B}" then
 			res.errprint(res.timeoutstr)
 		elseif y == "exit 0{E6A0C4BD-75DC-4313-A1AF-7666ED28545B}" then
 		else
 			y = y:gsub("%{E6A0C4BD%-75DC%-4313%-A1AF%-7666ED28545B%}", "")
-			-- client:sendMsg(dest, res.nick .. ": Script error: " .. safeString(y))
-			doErrorPrint(res.errprint, res.nick, res.nick .. ": Script error: " .. y)
+			doErrorPrint(res.errprint, res.nick, y)
 			local tb = debug.traceback(res.coro, y)
 			-- print("dbotResume", tb)
 			if tb then
@@ -1399,8 +1401,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 						-- local ok, cerr = pcall(callback, ...)
 						local ok, cerr = continueMemLimitHooked(callback, dbotMemLimit, dbotCpuLimit, ...)
 						if not ok then
-							-- client:sendMsg(dest, nick .. ": Script error: " .. safeString(cerr), "dbotSandbox")
-							doErrorPrint(errprint, nick, nick .. ": Script error: " .. cerr)
+							doErrorPrint(errprint, nick, cerr)
 						end
 					end
 				end)
@@ -1460,8 +1461,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 							-- local ok, cerr = pcall(callback, ...)
 							local ok, cerr = continueMemLimitHooked(callback, dbotMemLimit, dbotCpuLimit, ...)
 							if not ok then
-								-- client:sendMsg(dekst, nick .. ": Script error: " .. safeString(cerr), "dbotSandbox")
-								doErrorPrint(errprint, nick, nick .. ": Script error: " .. cerr)
+								doErrorPrint(errprint, nick, cerr)
 							end
 						end
 					end, nil, nil, "POST", body) then
@@ -1520,8 +1520,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 							-- local ok, cerr = pcall(callback, ...)
 							local ok, cerr = continueMemLimitHooked(callback, dbotMemLimit, dbotCpuLimit, ...)
 							if not ok then
-								-- client:sendMsg(dekst, nick .. ": Script error: " .. safeString(cerr), "dbotSandbox")
-								doErrorPrint(errprint, nick, nick .. ": Script error: " .. cerr)
+								doErrorPrint(errprint, nick, cerr)
 							end
 						end
 					end, nil, nil, method, reqbody)
@@ -1648,8 +1647,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			local ok, terr = continueMemLimitHooked(callback, dbotMemLimit, dbotCpuLimit)
 			t:stop()
 			if not ok then
-				-- client:sendMsg(dest, nick .. ": Script error: " .. safeString(terr), "dbotSandbox")
-				doErrorPrint(errprint, nick, nick .. ": Script error: " .. terr)
+				doErrorPrint(errprint, nick, terr)
 			end
 		end)
 		tmr:start()
@@ -2352,7 +2350,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		setfenv(func, renv)
 	end)
 	if not ok then
-		doErrorPrint(errprint, nick, nick .. ": Script error: " .. y)
+		doErrorPrint(errprint, nick, y)
 		return false
 	end
 	coro = ok
