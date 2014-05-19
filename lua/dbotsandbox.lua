@@ -2048,6 +2048,16 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			return v
 		end
 	end
+	hlp.setLastError = "Set the last error message for the current nick. It's preferred not to call this function directly, but instead use other provided error functionality, such as error() or log4lua's error function"
+	env.setLastError = function(msg)
+		-- assert(not othernick, "Cannot set error for another user")
+		local ecache = getCache("~error", true)
+		if msg then
+			ecache[nick:lower()] = safeString(tostring(msg))
+		else
+			ecache[nick:lower()] = nil
+		end
+	end
 	hlp.getuid = "Returns the uid (account number) for the current script owner or the provided user"
 	env.getuid = sbgetuid
 	hlp.getname = "Returns the user name for the current script owner or the provided account number"
