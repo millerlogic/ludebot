@@ -1134,27 +1134,29 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		return h.msg, h.who, h.time
 	end
 	local notices = nil -- Can only send 1 notice per user.
-	hlp.sendNotice = "Send an IRC notice message to a user. Limitations apply."
+	hlp.sendNotice = "Send an IRC notice message to a nick/channel. Limitations apply."
 	env.sendNotice = function(to, msg)
 		cansingleprint = false
-		assert(type(to) == "string", "Invalid nick")
+		assert(type(to) == "string", "Invalid nick/chan")
 		assert(msg)
 		if notices and notices[to:lower()] then
 			return
 		end
-		if chan then
+		if to:lower() == dest:lower() then
+			client:sendNotice(to, safeString(msg))
+		elseif chan then
 			local so = findSeen(client:network(), chan, to)
 			if (not so or (os.time() - so.t) > 300) and to:lower() ~= nick:lower() then
 				-- print("env.sendNotice", so, os.time(), so.t, (os.time() - so.t), to, nick)
 				-- error("Cannot send notice to inactive user " .. to, 0)
-				return false, "Cannot send notice to inactive user " .. to
+				return false, "Cannot send notice to inactive " .. to
 			end
 			client:sendNotice(to, "[" .. chan .. "] " .. safeString(msg))
 		else
 			if to:lower() ~= nick:lower() then
 				-- print("env.sendNotice", "nochan", to, nick)
 				-- error("Cannot send notice to inactive user " .. to, 0)
-				return false, "Cannot send notice to inactive user " .. to
+				return false, "Cannot send notice to inactive " .. to
 			end
 			client:sendNotice(to, safeString(msg))
 		end
