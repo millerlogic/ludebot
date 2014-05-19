@@ -9,7 +9,7 @@ require("html")
 
 
 if not lmnode then
-  lmnodePort = 14949
+	lmnodePort = 14949
 	lmnodeBindAddr = nil
 	lmnodeBindAddr = "127.0.0.1"
 
