@@ -244,7 +244,6 @@ function dbotRunWebSandboxHooked(acct, code, outputFunc, finishEnvFunc, maxPrint
 				-- Patch up some of the functions in the user env.
 				setUnitEnv(env, allowHttp)
 				env.Cache = getUserCache(acct:nick(), true)
-				-- env.arg[1] = "TestArg1" -- Doesn't set "..."
 				if finishEnvFunc then
 					finishEnvFunc(env)
 				end
@@ -479,7 +478,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 								end
 								return realprint(...)
 							end
-						end, 10000, false)
+						end, 10000, true)
 				end
 			end
 		else
@@ -616,7 +615,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 						end
 						-- compile it and see output!...
 						local output = {}
-						local runcode = modname .. "." .. funcname .. "()"
+						local runcode = "singleprint(" .. modname .. "." .. funcname .. "())"
 						dbotRunWebSandboxHooked(acct, runcode, function(line)
 							table.insert(output, line)
 						end, function(env)

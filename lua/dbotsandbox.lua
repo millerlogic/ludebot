@@ -376,7 +376,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		"ipairs","next","pcall","rawget","rawset","select",
 		"setmetatable","getmetatable","type","unpack","require",
 		"halt","saferandom","_threadid",
-		"allCodeSecure","allCodeTrusted","whyNotCodeTrusted",
+		"allCodeSecure","allCodeTrusted","whyNotCodeTrusted", "failNotCodeTrusted",
 	}
 	local env = {}
 	local renv = {} -- Current run env.
@@ -401,10 +401,18 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	
 	local allCodeSecure = true -- See hlp.allCodeSecure
 	local allCodeTrusted = true -- See hlp.allCodeTrusted
+	local failNotCodeTrusted = false
 	LocalCache.whyNotCodeTrusted = nil
 	function whyNotCodeTrusted(x)
 		if x then
-			LocalCache.whyNotCodeTrusted = x
+			if not LocalCache.whyNotCodeTrusted then
+				-- Only set the first one, it matters the most.
+				LocalCache.whyNotCodeTrusted = x
+			end
+			-- print(debug.traceback("whyNotCodeTrusted = " .. tostring(x))) -- DEBUG
+			if failNotCodeTrusted then
+				error("Not trusted: " .. (x or "?"))
+			end
 		end
 		return LocalCache.whyNotCodeTrusted
 	end
@@ -1024,6 +1032,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.dest = dest
 	hlp.bot = "The bot's nickname"
 	env.bot = client:nick()
+	if not env.bot or env.bot == "" then
+		env.bot = nick_set or "bot"
+	end
 	-- env.iscmd = true
 	hlp.cmdchar = "Command character for built-in commands"
 	env.cmdchar = cmdchar
@@ -1239,8 +1250,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.allCodeSecure = function() return allCodeSecure end
 	hlp.allCodeTrusted = "Returns true if all code called is either secure or called by first author called"
 	env.allCodeTrusted = function() return allCodeTrusted end
-	hlp.whyNotCodeTrusted = "Returns function name if allCodeTrusted is false"
+	hlp.whyNotCodeTrusted = "Returns function name if allCodeTrusted is false. This value is also stored in LocalCache."
 	env.whyNotCodeTrusted = function() return whyNotCodeTrusted() end
+	hlp.failNotCodeTrusted = "Calling this function will cause an error if untrusted code is called. If the context is not trusted already, the function fails immediately."
+	env.failNotCodeTrusted = function()
+		assert(not allCodeTrusted, "Context not trusted")
+		failNotCodeTrusted = true
+	end
 	hlp.cash = "Returns the amount of cash the caller has, or for the provided user"
 	renv.cash = function(who)
 		return cash(who or env.nick)

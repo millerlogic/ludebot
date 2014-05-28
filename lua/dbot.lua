@@ -815,7 +815,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 		do
 			-- on_activity
 			local so = findSeen(client:network(), chan, nick)
-			if not so or so.t <= os.time() - 1200 then
+			if not so or so.t <= os.time() - 300 then
 				dbotRunSandboxHooked(client, nick, chan, "etc.on_activity();", function(env)
 					env.Event = { name = "activity" }
 				end, nil, true)
@@ -828,6 +828,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 		-- Not to a channel.
 		-- Use prefix (full address) in PM, so that hijacking doesn't happen.
 		-- DOES NOT WORK FOR OUTGOING MESSAGES! prefix would be the bot, dest wouldn't have full addr.
+		-- Update: it's probably best not to support in PM it would allow scripts to see private PM.
 		-- addChatHistory(client, prefix, nick, logmsg)
 	end
 end
@@ -1077,7 +1078,9 @@ end
 
 dbotCronTimerResolution = 60 * 5
 dbotCronTimer = dbotCronTimer or Timer(dbotCronTimerResolution, function()
-	dbotRunSandboxHooked(ircclients[1], "$root", "$root", "etc.on_cron_timer();", function(env)
+	-- local client = ircclients[1]
+	local client = UnitClient()
+	dbotRunSandboxHooked(client, "$root", "$root", "etc.on_cron_timer();", function(env)
 		env.Event = { name = "cron_timer", cronTimerResolution = dbotCronTimerResolution }
 	end, 0, true)
 end)
