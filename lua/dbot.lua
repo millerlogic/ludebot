@@ -31,6 +31,7 @@ dbotIncs = { -- TODO: move to config.
 	"prepare_wordlists",
 	"wordlists",
 	"lmnode",
+	"ltelnet",
 }
 for i, req in ipairs(dbotIncs) do
 	include(req)

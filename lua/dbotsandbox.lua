@@ -2409,6 +2409,30 @@ function _p_replace(s, find, rep)
 end
 
 
+local ansibold = "\027[1;"
+local ansiclear = "\027[0m"
+
+function ircc2ansi(cc)
+	if cc == 0 then return "\027[1;37m"
+	elseif cc == 1 then return "\027[30m"
+	elseif cc == 2 then return "\027[34m"
+	elseif cc == 3 then return "\027[32m"
+	elseif cc == 4 then return "\027[1;31m"
+	elseif cc == 5 then return "\027[31m"
+	elseif cc == 6 then return "\027[35m"
+	elseif cc == 7 then return "\027[33m"
+	elseif cc == 8 then return "\027[1;33m"
+	elseif cc == 9 then return "\027[1;32m"
+	elseif cc == 10 then return "\027[36m"
+	elseif cc == 11 then return "\027[1;36m"
+	elseif cc == 12 then return "\027[1;34m"
+	elseif cc == 13 then return "\027[1;35m"
+	elseif cc == 14 then return "\027[1;30m"
+	elseif cc == 15 then return "\027[37m"
+	else return ansiclear end
+end
+
+
 function outputPrintConvert(sourceType, convType, s, lineBased)
 	if sourceType ~= convType then
 		if convType == 'html' then
@@ -2422,6 +2446,15 @@ function outputPrintConvert(sourceType, convType, s, lineBased)
 					return "&gt;"
 				end
 			end)
+		end
+		
+		if sourceType == 'irc' and convType == 'ansi' then
+			-- TODO: improve.
+			s = s:gsub("\002", ansibold)
+			s = s:gsub("\003(%d?%d?)", function(scc)
+				return ircc2ansi(tonumber(scc))
+			end)
+			s = s .. ansiclear -- Just be sure.
 		end
 
 		if convType == 'html' or convType == 'plain' then
