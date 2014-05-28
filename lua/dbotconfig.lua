@@ -210,6 +210,22 @@ function accountCanSaveUdf(acct, moduleName, funcName)
 		if finfo.acctID ~= acct.id and finfo.chacctID ~= acct.id then
 			return false, "Access denied"
 		end
+		return true -- Found it with the correct owner and same case, so we're done.
+	end
+	do
+		-- Now make sure the function doesn't exist with different case.
+		local udf = dbotData["udf"]
+		if udf then
+			local mod = udf[moduleName]
+			if mod then
+				local lFuncName = funcName:lower()
+				for fn, fi in pairs(mod) do
+					if lFuncName == fn:lower() then
+						return false, "Function already exists with different case"
+					end
+				end
+			end
+		end
 	end
 	return true
 end
@@ -224,13 +240,15 @@ function accountSaveUdf(acct, moduleName, funcName, funcCode, isNew)
 	if acct.id == 0 then
 		return nil, "Guest cannot save functions"
 	end
+	do
+		-- Ensure allowed!
+		local a, b = accountCanSaveUdf(acct, moduleName, funcName)
+		if not a then
+			return a, b
+		end
+	end
 	local finfo = getUdfInfo(moduleName, funcName)
 	if finfo then
-		-- Ensure allowed!
-		-- if getAccountMask(finfo.faddr):lower() ~= acct:mask():lower() then
-		if finfo.acctID ~= acct.id and finfo.chacctID ~= acct.id then
-			return nil, "Access denied"
-		end
 		if isNew then
 			return nil, "Function already exists"
 		end
