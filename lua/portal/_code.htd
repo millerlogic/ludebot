@@ -29,13 +29,30 @@ function codeformInfoCodeName(user, vuri, qs, acct)
 	if not qs then return "" end
 	local cname = qs:match("[%?&]name=([^&]+)")
 	if not cname then return "" end
-	return urlDecode(cname) or ""
+	local fname = urlDecode(cname) or ""
+	local s = fname
+	if qs and getval(qs, "fork") then
+		local safenick = nick:gsub("[^%w%d_]", "")
+		local newfname = s .. "_" .. safenick
+		if not getUdfInfo(getval(qs, "module"), newfname) then
+			s = newfname
+		else
+			for i = 2, math.huge do
+				local newfname2 = newfname .. "_" .. i
+				if not getUdfInfo(getval(qs, "module"), newfname2) then
+					s = newfname2
+					break
+				end
+			end
+		end
+	end
+	return s
 end
 
 -- Just for "name"&"module" - which is not disabled if no name entered.
 function codeformInfofieldNeedInputIfDisabled(user, vuri, qs, acct)
 	local cname = codeformInfoCodeName(user, vuri, qs, acct)
-	if cname:len() > 0 then
+	if cname:len() > 0 and not getval(qs, "fork") then
 		-- return "disabled=\"disabled\"" -- Doesn't send the value on submit.
 		return "readonly=\"readonly\""
 	end
@@ -51,7 +68,11 @@ function codeformInfofieldHtmlAfterName(user, vuri, qs, acct)
 			return " <input type=\"submit\" value=\"Go\" id=\"gobutton\">"
 		end
 	end
-	return " <span style=\"color: #CC0000;\">*</span>"
+	local s = " <span style=\"color: #CC0000;\">*</span>"
+	if qs and getval(qs, "fork") then
+		s = s .. "<span style='font-size: 10pt'> (fork name)</span>"
+	end
+	return s
 end
 
 function codeformCodeboxIfDisabled(user, vuri, qs, acct)
@@ -113,9 +134,7 @@ end
 local gseealsomod, gseealsofunc
 
 function codeformTextareaCode(user, vuri, qs, acct)
-	if vuri == "/t/create" then
-		return "return \"hello, world\"\n"
-	elseif vuri == "/t/alias" then
+	if vuri == "/t/alias" then
 		return "return " .. urlDecode(getval(qs, "module") or "etc") .. "."
 			.. urlDecode(getval(qs, "of") or "NAME_HERE") .. "(...)\n"
 	else
@@ -146,7 +165,7 @@ function codeformTextareaCode(user, vuri, qs, acct)
 						end
 						local b4 = ""
 						if vuri ~= "/t/view" then
-							if not accountCanSaveUdf(acct, modname, funcname) then
+							if not accountCanSaveUdf(acct, modname, funcname) and not getval(qs, "fork") then
 								b4 = "\n-- You do not have permission to edit this function\n\n"
 							end
 						end
@@ -154,7 +173,11 @@ function codeformTextareaCode(user, vuri, qs, acct)
 					end
 				end
 			end
-			return "-- This function does not exist\n"
+			if vuri == "/t/create" then
+				return "return \"hello, world\"\n"
+			else
+				return "-- This function does not exist\n"
+			end
 		end
 	end
 	return ""
@@ -174,10 +197,17 @@ function codeformEditInfo(user, vuri, qs, acct)
 						else
 							return "<span style=\"font-size: 10pt;\">(editing)</span>"
 						end
+					elseif acct and acct.id then
+						if vuri == "/t/view" then
+							return "<a style=\"font-size: 10pt;\" href=\"/t/create" .. qs .. "&fork=true\">(fork)</a>"
+						end
 					end
 				end
 			end
 		end
+	end
+	if getval(qs, "fork") then
+		return "<span style=\"font-size: 10pt;\">(forking)</span>"
 	end
 	return ""
 end
@@ -280,9 +310,18 @@ function codeformSaveButtonHtml(user, vuri, qs, acct)
 	if vuri ~= "/t/view" then
 		local cname = codeformInfoCodeName(user, vuri, qs, acct)
 		if cname:len() > 0 or vuri == "/t/create" or vuri == "/t/alias" then
-			return [[ <input type="submit" value="Save" id="savebutton">
+			local btnvalue = "Save"
+			if qs and getval(qs, "fork") then
+				btnvalue = "Fork"
+			end
+			local s = [[ <input type="submit" value="]] .. btnvalue .. [[" id="savebutton">
 			<input type="hidden" name="save" value="]] .. vuri .. [[">
 			<small>&copy; dbot</small>]]
+			if qs and getval(qs, "fork") then
+				s = s .. [[<input type="hidden" name="forkmod" value="]] .. urlDecode(getval(qs, "module")) .. [[">]]
+				s = s .. [[<input type="hidden" name="forkfunc" value="]] .. urlDecode(getval(qs, "name")) .. [[">]]
+			end
+			return s
 		end
 	end
 	return ""
