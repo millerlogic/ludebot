@@ -36,29 +36,10 @@ end
 
 
 function LMNUser:doCommand(line, firstConnect)
-	self.num = self.num + 1
-	local mprint = function(...)
-		local any = false
-		for i = 1, select('#', ...) do
-			local x = select(i, ...)
-			x = tostring(x)
-			if #x > 0 then
-				if not any then
-					self:send('#')
-					any = true
-				end
-				x = x:gsub("[\r\n%z]", " ")
-				self:send(x)
-			end
-		end
-		if any then
-			self:send('\n')
-		end
-	end
 	local client = UnitClient()
 	dbotRunSandboxHooked(client,
-			"$munin!munin@munin.", "<chan>", "etc.on_munin()", function(env)
-				setUnitEnv(env, allowHttp)
+			"$munin!munin@munin.", "<chan>", "_doRun()", function(env)
+				setUnitEnv(env)
 				env.Event = { name = "munin" .. (firstConnect and "-connect" or "") }
 				env.Munin = {
 					line = line;
@@ -71,7 +52,14 @@ function LMNUser:doCommand(line, firstConnect)
 						self:send(s)
 					end;
 				}
-			end, 10000, true)
+				env._doRun = function()
+					local a, b = pcall(env.etc.on_munin)
+					if not a then
+						print("WARNING: lmnode etc.on_munin error!")
+						print(debug.traceback(b))
+					end
+				end
+			end, 10000)
 end
 
 
