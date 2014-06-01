@@ -182,7 +182,8 @@ end
 botExpectChannelBotCommand(cmdchar .. "reload", function(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
-	if nick == "byte[]" and not reloadfail then
+	local acct = getUserAccount(sender)
+	if acct and acct.id == 1 and not reloadfail then
 		reloadfail = Timer(10, function(tmr)
 			if reloadfail then
 				client:sendMsg(chan, nick .. " *\2 RELOAD FAIL!\2 " ..
@@ -262,7 +263,7 @@ botExpectPMBotCommand(cmdchar .. "allow", function(state, client, sender, target
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
 	local acct = getUserAccount(sender)
-	if nick == "byte[]" and acct then
+	if acct and acct.id == 1 then
 		local who, whoident, whoaddr = sourceParts(args)
 		if args:find(' ', 1, true) or not who or not whoident or not whoaddr then
 			client:sendNotice(nick, "Expected nick!ident@addr")
@@ -289,7 +290,7 @@ botExpectChannelBotCommand(cmdchar .. "grant", function(state, client, sender, t
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
 	local acct = getUserAccount(sender)
-	if nick == "byte[]" and acct then
+	if acct and acct.id == 1 then
 		local who, minus, flag = args:match("([^ ]+) (%-?)(.+)")
 		if flag then
 			local whoacct = adminGetUserAccount(who)
