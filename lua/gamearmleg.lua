@@ -234,7 +234,8 @@ function doAutoBotTrades1()
 	do
 		local inv={
 			--"ChesterInvestor","BuyAllStocks","StockMarketeer","NoFundsTrader","StockTraderJoe",
-			"TraderTraitor","AllYourStocks","BadDayTrader","ShortStock","SellsHigh",
+			-- "TraderTraitor","AllYourStocks",
+			"BadDayTrader","ShortStock","SellsHigh",
 			};
 		local bb = internal.frandom(3) - 1
 		if 1 == internal.frandom(10) then
@@ -393,10 +394,17 @@ function doAutoBotTrades2()
 					x.outs = (x.outs or 0) + thisvol -- Outstanding buy/sell, negative for sell.
 					x.outs = math.min(x.outs, 50)
 					if x.outs >= mintrades then
-						local n = directBuyShare(tradername, sym, x.outs, 'auto')
-						if n and n > 0 then
+						local totalshares, _, totsyms = getUserStockCount(tradername)
+						local thisshares = getUserStockCount(tradername, sym)
+						if thisshares > 10 and totalshares > math.random(75, 100 + totsyms * 10) then
+							print("Skipping buying shares due to total share bot limit", tradername, sym, x.outs)
 							x.outs = 0
-							log_event("stock_trade_auto", tradername .. " buy " .. n .. " " .. sym)
+						else
+							local n = directBuyShare(tradername, sym, x.outs, 'auto')
+							if n and n > 0 then
+								x.outs = 0
+								log_event("stock_trade_auto", tradername .. " buy " .. n .. " " .. sym)
+							end
 						end
 					end
 					x.dirups = (x.dirups or 0) + 1 -- New dirups.
