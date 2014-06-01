@@ -13,7 +13,7 @@ require("timers")
 require("eventlog")
 
 
-local gamechan = "#clowngames" -- TODO: move to config.
+local gamechan = "#clowngames" -- Can be overridden via armleg.dat
 local TimeBase = 1332000000 -- 2012-03-17 12:00:00
 
 armleghelp = {}
@@ -68,6 +68,8 @@ if not alData and irccmd then
 	alData = t
 	t = nil
 end
+
+gamechan = alData.gamechan or gamechan
 
 
 --[[
