@@ -2150,13 +2150,29 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return env._createFile(stringprovider, handle)
 	end
-	hlp.getCode = "Returns the code for the specified user function (function reference, not name)"
-	env.getCode = function(x)
-		local finfo = owners[x]
-		if not finfo then
-			return nil, "Not supported"
+	hlp.getCode = "Returns the code for the specified user function (function name)"
+	env.getCode = function(x, y)
+		if type(x) == "function" then
+			local finfo = owners[x]
+			if not finfo then
+				return nil, "Not supported"
+			end
+			return loadUdfCode(finfo)
+		else
+			-- assert(type(x) == "string", "String expected")
+			if type(x) ~= "string" then
+				return nil, "String expected"
+			end
+			if not y then
+				x, y = x:match("([^%.]+)%.(.*)")
+				assert(x and y, "Unable to parse function")
+			end
+			local finfo = getUdfInfo(x, y)
+			if not finfo then
+				return nil, "Function not found"
+			end
+			return loadUdfCode(finfo)
 		end
-		return loadUdfCode(finfo)
 	end
 	hlp.ircUser = "Returns a table with details on the specified user"
 	env.ircUser = function(n, offlineInfo)
