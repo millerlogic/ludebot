@@ -351,6 +351,34 @@ botExpectChannelBotCommand(cmdchar .. "access", function(state, client, sender, 
 end)
 
 
+botExpectChannelBotCommand(cmdchar .. "autojoin", function(state, client, sender, target, cmd, args)
+	local nick = nickFromSource(sender)
+	local chan = client:channelNameFromTarget(target)
+	local acct = getUserAccount(sender)
+	if acct and acct.id == 1 then
+		if args:find(" ") then
+			client:sendMsg(chan, nick .. " * use comma to separate channels, don't add passwords")
+			return
+		end
+		dbotData.autojoin = dbotData.autojoin or {}
+		for what, ajchan in args:gmatch("([%-%+]*)([^,]+)") do
+			if what == '-' then
+				client:sendLine("PART " .. ajchan)
+				dbotData.autojoin[ajchan:lower()] = nil
+				client:sendMsg(chan, nick .. " * removed autojoin for " .. ajchan)
+			elseif what == '+' or what == '' then
+				client:sendLine("JOIN " .. ajchan)
+				dbotData.autojoin[ajchan:lower()] = { join = ajchan }
+				client:sendMsg(chan, nick .. " * added autojoin for " .. ajchan)
+			end
+		end
+		dbotDirty = true
+	else
+		client:sendMsg(chan, nick .. " * access denied")
+	end
+end)
+
+
 botExpectChannelBotCommand(cmdchar .. "trustfunc", function(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
@@ -1187,7 +1215,8 @@ function dbotSetupClient(client)
 	client:sendLine("CAP REQ :extended-join account-notify")
 	client:sendLine("CAP END")
 
-	client:sendLine("JOIN #dbot")
+	-- client:sendLine("JOIN #dbot") -- Moved to autojoin
+	
 	-- client:sendLine("MODE " .. client:nick() .. " -i") -- nick isn't setup yet
 
 	client.on["^PRIVMSG"] = "dbotSeenPrivmsg"
@@ -1199,6 +1228,15 @@ function dbotSetupClient(client)
 	client.on["QUIT_CHAN"] = "dbotSeenLeave"
 
 	client.on["ACCOUNT"] = "dbotNetAcct"
+	
+	if dbotData.autojoin then
+		for k, v in pairs(dbotData.autojoin) do
+			if v.join then
+				print("autojoin", v.join)
+				client:sendLine("JOIN " .. v.join)
+			end
+		end
+	end
 	
 	if not client.seenSendMsg then
 		client.seenSendMsg = client.sendMsg
