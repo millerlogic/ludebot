@@ -185,7 +185,7 @@ end
 
 function codeformEditInfo(user, vuri, qs, acct)
 	if vuri == "/t/view" or vuri == "/t/edit" then
-		local cname = codeformInfoCodeName(user, vuri, qs, acct)
+		local cname = qs and codeformInfoCodeName(user, vuri, qs, acct) or ""
 		if cname:len() > 0 then
 			if qs then
 				-- lookup author...
@@ -206,7 +206,7 @@ function codeformEditInfo(user, vuri, qs, acct)
 			end
 		end
 	end
-	if getval(qs, "fork") then
+	if qs and getval(qs, "fork") then
 		return "<span style=\"font-size: 10pt;\">(forking)</span>"
 	end
 	return ""
