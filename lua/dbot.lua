@@ -221,7 +221,7 @@ end)
 
 function dbot_god(state, client, sender, target, cmd, args)
 	local acct = getUserAccount(sender)
-	if acct and acct:demand("god") then
+	if acct and acct:demand("god") and client:network() == "freenode" then
 		assert(acct.id == 1, "got god?")
 		dbotRunSandboxHooked(client, sender, target, args, function(env)
 			env.jesus = _G
