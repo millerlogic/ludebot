@@ -266,6 +266,23 @@ function FSO:lpath(path)
 end
 
 
+-- Helper function to call an extension.
+function callProviderExtension(provider, name, res, ...)
+	if provider.extension then
+		local rt = { provider:extension(name, res, ...) }
+		if rt[1] or rt[2] then
+			return unpack(rt)
+		end
+	else
+		local extfunc = provider["ext_" .. name]
+		if extfunc then
+			return extfunc(provider, res, ...)
+		end
+	end
+	return false, "Extension not supported (" .. name .. ")"
+end
+
+
 -- Calls an extension.
 -- name; name of the extension defined as ext_name.
 -- If path is not nil it will be translated to a res for the provider.
@@ -280,18 +297,7 @@ function FSO:extension(name, path, ...)
 		end
 		path = a
 	end
-	if self.provider.extension then
-		local rt = { self.provider:extension(name, path, ...) }
-		if rt[1] or rt[2] then
-			return unpack(rt)
-		end
-	else
-		local extfunc = self.provider["ext_" .. name]
-		if extfunc then
-			return extfunc(path, ...)
-		end
-	end
-	return false, "Extension not supported (" .. name .. ")"
+	return callProviderExtension(self.provider, name, path, ...)
 end
 
 
@@ -1511,7 +1517,6 @@ function createMountableProvider(provider)
 	end
 
 	newprovider.extension = function(self, name, res, ...)
-		local extfunc
 		if res then
 			local m, p = checkmounts(res)
 			if m then
@@ -1520,18 +1525,11 @@ function createMountableProvider(provider)
 					return nil, b
 				end
 				p = a
-				extfunc = m.fso.provider["ext_" .. name]
-				if not extfunc then
-					return nil
-				end
-				return extfunc(m.fso.provider, p, ...)
+				return callProviderExtension(m.fso.provider, name, p, ...)
 			end
 		end
-		extfunc = self["ext_" .. name]
-		if not extfunc then
-			return nil
-		end
-		return extfunc(nil, ...)
+		-- res is already as expected here.
+		return callProviderExtension(provider, name, res, ...)
 	end
 
 	return newprovider
