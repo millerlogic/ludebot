@@ -758,18 +758,16 @@ function DbotUserFSProvider:permission(res, flag, uid)
 end
 
 
-function getDbotFSOAttributes(fso, path, aname)
-	local a, b = fso:tpath(path)
-	if not a then
-		return nil, b
-	end
-	path = a
-
-	if not fso.provider:permission(path, "q", fso.uid) then
+-- Attributes specific to this provider.
+-- aname is optional name specifying which field to return; otherwise returns a table of all fields.
+function DbotUserFSProvider:ext_attributes(res, aname)
+	local uid = self.uid or 0
+	
+	if not self:permission(res, "q", uid) then
 		return nil, "Permission denied (attributes)"
 	end
-
-	local f, d, extra = fsodbotFindNode(path)
+	
+	local f, d, extra = fsodbotFindNode(res)
 	if not f then
 		if not d then
 			return nil, extra
@@ -787,15 +785,16 @@ function getDbotFSOAttributes(fso, path, aname)
 	else
 		t.mode = "other"
 	end
-	if path == "/" then
+	if res == "/" then
 		t.uid = 0
 	else
 		if f["?o"] then
 			t.uid = f["?o"]
-		-- elseif fso.provider:permission(path, "d", fso.uid) then
-		elseif fso.provider:permission(path, "o", fso.uid) then
-			t.uid = fso.provider.uid
+		-- elseif self:permission(res, "d", uid) then
+		elseif self:permission(res, "o", uid) then
+			t.uid = uid
 		else
+			-- TODO: get the real owner if I don't have permission.
 			t.uid = 0
 		end
 		if f["?g"] then
@@ -810,7 +809,41 @@ function getDbotFSOAttributes(fso, path, aname)
 	if aname then
 		return t[aname]
 	end
+	return t
+end
 
+
+-- Generically support attributes for any FS.
+function getDbotFSOAttributes(fso, path, aname)
+	local result = fso:extension("attributes", path, aname)
+	if result then
+		return result
+	end
+	-- If the FS doesn't support attributes, let's try to work around it.
+	local t = {}
+	
+	local ft, err = fso:info(path, 't')
+	if not ft then
+		return ft, err
+	end
+	
+	if ft == 'f' then
+		t.mode = "file"
+	elseif ft == 'd' then
+		t.mode = "directory"
+	else
+		-- t.mode = ft
+		t.mode = "other"
+	end
+	
+	t.uid = 0
+	t.gid = 0
+	
+	-- Lazy way of supporting aname.
+	-- More optimized would be to avoid table creation or looking up the other info.
+	if aname then
+		return t[aname]
+	end
 	return t
 end
 
