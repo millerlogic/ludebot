@@ -173,12 +173,13 @@ function codeformTextareaCode(user, vuri, qs, acct)
 					end
 				end
 			end
-			if vuri == "/t/create" then
-				return "return \"hello, world\"\n"
-			else
+			if vuri ~= "/t/create" then
 				return "-- This function does not exist\n"
 			end
 		end
+	end
+	if vuri == "/t/create" then
+		return "API \"1.1\"\n\nreturn \"hello, world\"\n"
 	end
 	return ""
 end

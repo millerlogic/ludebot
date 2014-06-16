@@ -480,12 +480,30 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	
 	local function loadstringAsUser(code, name, finfo)
+		local apiver = 1
+		do
+			local firstline = code:match("[^\r\n]*")
+			local icomment = firstline:find("--", 1, true)
+			if icomment then
+				firstline = firstline:sub(1, icomment - 1)
+			end
+			apiver = tonumber(firstline:match("%f[%w]API *[(\"'](%d%.?%d*)[)\"']")) or apiver
+			if apiver ~= 1 and apiver ~= 1.1 then
+				error("Invalid API version")
+			end
+			-- print("API", apiver)
+		end
+		
 		local f, err = loadstring(" \t " .. code .. " \t ", name)
 		if not f then
 			return nil, err
 		end
 		
 		local fenv = {}
+		fenv._apiver = apiver
+		fenv.API = function(ver)
+			return assert(tonumber(ver) == apiver, "API did not load")
+		end
 		fenv._G = fenv
 		fenv._funcname = name
 		fenv.nick = nick -- Ensure the caller can't modify this.
@@ -503,23 +521,36 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			fenv.Input._set_iscmd = nil
 		end
 		fenv.directprint = envprint
-		local fs = wrapDbotSandboxFS(nickFromSource(finfo.faddr), true)
+		local fs
+		if apiver == 1.0 then
+			fs = wrapDbotSandboxFS(nickFromSource(finfo.faddr), true)
+			fenv.getRootFS = function()
+				return wrapDbotSandboxFS(getDbotUserRootFSO(finfo.acctID), true)
+			end
+		else
+			fs = wrapDbotSandboxFS(getDbotUserRootFSO(finfo.acctID), true)
+		end
 		fenv.io = fsToIO(fs, createSandboxEnvIO())
 		fenv.os = fsToOS(fs, _clonetable(renv.os))
 		fenv.getUserFS = function(n)
-			local fso = getDbotFSO(finfo.acctID, getname, n)
-			local a, b = fso:chroot("/user/" .. n:lower())
-			if not a then
-				return a, b
+			local fso
+			if apiver == 1.0 then
+				assert(n, "nick expected")
+				fso = getDbotFSO(finfo.acctID, getname, n)
+				local a, b = fso:chroot("/user/" .. n:lower())
+				if not a then
+					return a, b
+				end
+			else
+				if not n then
+					n = getname(finfo.acctID)
+				end
+				-- fso = getDbotUserRootFSO(finfo.acctID)
+				-- fso:cd("/user/" .. n .. "/home")
+				fso = getDbotUserRootFSO(n)
 			end
 			fso:cd("/home")
 			return wrapDbotSandboxFS(fso)
-		end
-		fenv.getRootFS = function()
-			if finfo.acctID == 1 then
-				return wrapDbotSandboxFS(getDbotUserRootFSO(finfo.acctID, getname), true)
-			end
-			return nil, "Disabled"
 		end
 		fenv.reenter = function(...)
 			return fenv.reenterFunc(name, ...)
@@ -1049,6 +1080,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.bot = client:nick()
 	if not env.bot or env.bot == "" then
 		env.bot = nick_set or "bot"
+	end
+	hlp.API = "Load specific API version"
+	env.API = function(ver)
+		-- Can't load API at root level.
+		error("API did not load")
 	end
 	-- env.iscmd = true
 	hlp.cmdchar = "Command character for built-in commands"
@@ -2398,10 +2434,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 
 		hlp.getRootFS = "Returns a root FS object, containing all user's files"
 		renv.getRootFS = function()
-			if acct and acct.id == 1 then
-				return wrapDbotSandboxFS(getDbotUserRootFSO(getuid(nick), getname), true)
-			end
-			return nil, "Disabled"
+			return wrapDbotSandboxFS(getDbotUserRootFSO(getuid(nick)), true)
 		end
 
 		if finishEnvFunc then
