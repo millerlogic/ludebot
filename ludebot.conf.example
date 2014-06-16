@@ -1,0 +1,13 @@
+#!/usr/bin/env lua
+-- Temporary until irccmd becomes a lib.
+LUA_PATH = "../../ludebot/lua/?.lua;../../irccmd/lua/?.lua;../../luasandy/lua/?.lua;;"
+
+nick = "lerbert_test"
+server = "irc.freenode.net"
+-- port = 6667
+-- password = "hello"
+args = {
+	"-raw",
+	"-input:RUN=$RUN {1+}",
+	"-load=dbotloader.lua"
+}

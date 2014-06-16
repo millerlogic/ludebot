@@ -1,0 +1,71 @@
+#!/usr/bin/env lua
+-- Copyright (C) 2014 Anders Bergh, Christopher E. Miller
+-- License: GPLv3, see LICENSE file.
+
+-- Usage: ./ludebot [config file, default: ludebot.conf] [-- [extra args]]
+
+local config = setmetatable({}, {__index = _G})
+local fn = arg[1] ~= "--" and arg[1] or "ludebot.conf"
+local f = assert(loadfile(fn))
+setfenv(f, config)
+assert(pcall(f))
+
+assert(config.nick, "nick not defined")
+assert(config.server, "server not defined")
+
+config.args = config.args or {}
+
+-- by Peter Odding
+-- http://lua-users.org/lists/lua-l/2010-07/msg00087.html
+local shell_escape = function(...)
+	local command = type(...) == 'table' and ... or { ... }
+	for i, s in ipairs(command) do
+		s = (tostring(s) or ''):gsub('"', '\\"')
+		if s:find '[^A-Za-z0-9_."/-]' then
+			s = '"' .. s .. '"'
+		elseif s == '' then
+			s = '""'
+		end
+		command[i] = s
+	end
+	return table.concat(command, ' ')
+end
+
+-- Build argument list.
+local argv = {"../../irccmd/irccmd"}
+argv[#argv + 1] = config.server
+argv[#argv + 1] = config.nick
+
+if config.port then
+	argv[#argv + 1] = "-port="..config.port
+end
+
+if config.password then
+	argv[#argv + 1] = "-password="..config.password
+end
+
+for k, v in ipairs(config.args) do
+	argv[#argv + 1] = v
+end
+
+-- Pass any args after "--".
+local dashdash
+for i=1, #arg do
+	if arg[i] == "--" then
+		dashdash = i
+		break
+	end
+end
+
+if dashdash then
+	for i=dashdash + 1, #arg do
+		argv[#argv + 1] = arg[i]
+	end
+end
+
+local exec = function(s)
+	print(s)
+	return os.execute(s)
+end
+
+return exec("cd lua && LUA_PATH="..shell_escape(config.LUA_PATH).." "..shell_escape(argv))
