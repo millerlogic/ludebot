@@ -19,4 +19,4 @@ sudo make install
 ```
 If the above cannot find your lua include headers, try make without the INCLUDES=..., or change it based on where the dev headers are on your system.
 
-* Finally, launch the bot. See the steps in the file dbotloader.lua
+* Copy ludebot.conf.example to ludebot.conf and edit it. Then run ./ludebot.
