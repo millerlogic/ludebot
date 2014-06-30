@@ -2381,6 +2381,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.Output = env.Output or {}
 	-- env.Output.maxLines = 4
 	env.Output.maxLines = maxprintlines
+	env.Output.maxLineLength = 400
 	env.Output.printType = 'irc'
 	env.Output.printTypeConvert = 'auto'
 	env.Output.mode = 'irc'
