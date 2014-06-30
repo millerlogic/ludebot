@@ -375,9 +375,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		"tostring","tonumber","assert","error","pairs",
 		"ipairs","next","pcall","rawget","rawset","select",
 		"setmetatable","getmetatable","type","unpack","require",
-		"halt","saferandom","_threadid",
+		"halt","saferandom","_threadid","_takeCash",
 		"allCodeSecure","allCodeTrusted","whyNotCodeTrusted", "failNotCodeTrusted",
 	}
+	local wrapmods = {}
 	local env = {}
 	local renv = {} -- Current run env.
 	local cansingleprint = true
@@ -562,6 +563,34 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			end
 			return nil, "Permission denied"
 		end
+		fenv._takeCash = function(amount)
+			assert(apiver > 1.0, "Not supported")
+			assert(math.floor(amount) == amount, "Please transfer whole dollar amounts")
+			assert(amount >= -5 and amount <= 5, "Dollar amount out of allowed range")
+			assert(allCodeTrusted, "Context must be trusted in order to transfer cash")
+			assert(nickaccount, "Access denied (account)")
+			assert(finfo.acctID)
+			local tccache = getCache("~takeCash", true)
+			if amount > 0 then
+				-- Give to account.
+				-- Implement...
+				fenv.print("Not implemented...")
+			elseif amount < 0 then
+				-- Take from account.
+				-- Ensure this user has > $100...
+				local k = "" .. nickaccount .. "to" .. finfo.acctID
+				local mt = getmetatable(tccache)
+				local t = rawget(mt, "$time" .. k)
+				local v = tccache[k]
+				if not v or t < os.time() - 60 * 5 or amount > v then
+					-- Ask
+					fenv.print("Pretending to ask permission or something")
+					tccache[k] = amount
+				end
+				fenv.print("Pretending to transfer")
+				-- error("Not implemented")
+			end
+		end
 		fenv.safeloadstring = function(src, name)
 			name = name or ((fenv._funcname or "?") .. ":loadstring")
 			allCodeSecure = false
@@ -609,6 +638,20 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				return nil, "Permission denied"
 			end
 		end
+		--[[
+		fenv._trustAll = function()
+			name = name or ((fenv._funcname or "?") .. ":_trustAll")
+			if not (not trustedCodeAcctID or trustedCodeAcctID == 1) then
+				nottrusted(name)
+			end
+			if not whyNotCodeTrusted() then whyNotCodeTrusted(name or "loadstring") end
+			if finfo.acctID == 1 then
+				allCodeTrusted = true
+			else
+				return nil, "Permission denied"
+			end
+		end
+		--]]
 		fenv.eval = function(s)
 			local f, err = fenv.loadstring("return " .. s)
 			if not f then
@@ -2133,6 +2176,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		else
 			ecache[nick:lower()] = nil
 		end
+	end
+	hlp._takeCash = "_takeCash(amount) - Take the specified amount of money from the current account, transfer to the caller. Amounts currently supported: 1 to 5 to take a few dollars, -1 to -5 to give a few dollars."
+	env._takeCash = function(amount)
+		error("Cannot transfer cash from the top level")
 	end
 	hlp.getuid = "Returns the uid (account number) for the current script owner or the provided user"
 	env.getuid = sbgetuid
