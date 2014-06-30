@@ -433,6 +433,10 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 								assert(a and b, "Invalid header")
 								user.responseHeaders[a] = b
 							end
+							env.Web.headers = {}
+							for k, v in pairs(headers) do
+								env.Web.headers[k] = v
+							end
 							env.Web.webFile = safeFSOFile(f)
 							env.Web.write = function(s)
 								assert(type(s) == "string", "Must write a string, not " .. type(s))
@@ -771,6 +775,7 @@ function dbotPortal:onHttpRequest(user, method, vuri, headers)
 	end
 	if not a then
 		print(a, b)
+		print(debug.traceback())
 		return
 	end
 end
