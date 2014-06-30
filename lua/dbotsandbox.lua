@@ -516,6 +516,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		fenv.chan = chan
 		fenv.dest = dest
+		fenv.network = client:network()
 		-- fenv.iscmd = false
 		if fenv.Input then
 			fenv.Input.iscmd = fenv.Input._set_iscmd
@@ -1119,6 +1120,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.chan = chan
 	hlp.dest = "Set to chan if not nil, otherwise set to nick"
 	env.dest = dest
+	hlp.network = "Name of the current network"
+	env.network = client:network()
 	hlp.bot = "The bot's nickname"
 	env.bot = client:nick()
 	if not env.bot or env.bot == "" then
@@ -1144,16 +1147,29 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.names = function(delim)
 		return getSortedNickList(client, chan, true, delim)
 	end
-	hlp.nicklist = "IRC nick list, can supply an optional channel name, defaults to the current channel"
-	env.nicklist = function(where)
+	hlp.nicklist = "IRC nick list, can supply an optional channel name and optional network, defaults to the current channel on the current network"
+	env.nicklist = function(where, network)
+		local whichclient = client
+		if network then
+			whichclient = nil
+			for icc, cc in ipairs(ircclients) do
+				if network:lower() == (cc:network() or ''):lower() then
+					whichclient = cc
+					break
+				end
+			end
+			if not whichclient then
+				return nil, "No such network"
+			end
+		end
 		local xchan = chan
 		if type(where) == "string" then
-			if not isOnChannel(client, nick, where) then
+			if not isOnChannel(whichclient, nick, where) then
 				return {}
 			end
 			xchan = where
 		end
-		return getSortedNickList(client, xchan, false)
+		return getSortedNickList(whichclient, xchan, false)
 	end
 	hlp._memusage = "Total memory in use by Lua in Kbytes"
 	env._memusage = function()
