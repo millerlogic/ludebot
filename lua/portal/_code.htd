@@ -155,9 +155,9 @@ function codeformTextareaCode(user, vuri, qs, acct)
 						return "-- An error occured\n"
 					else
 						if code:len() < 128 then
-							local xmod, xfunc, y = code:match("(etc)%.([a-zA-Z0-9_]+)()")
+							local xmod, xfunc, y = code:match("([eu][t][ci][l]?)%.([a-zA-Z0-9_]+)()")
 							if y then
-								if not code:find("etc%.([a-zA-Z0-9_]+)", y) then
+								if not code:find("[eu][t][ci][l]%.([a-zA-Z0-9_]+)", y) then
 									gseealsomod = xmod
 									gseealsofunc = xfunc
 								end
