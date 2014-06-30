@@ -489,7 +489,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				firstline = firstline:sub(1, icomment - 1)
 			end
 			apiver = tonumber(firstline:match("%f[%w]API *[(\"'](%d%.?%d*)[)\"']")) or apiver
-			if apiver ~= 1 and apiver ~= 1.1 then
+			if apiver ~= 1 and apiver ~= 1.1 and apiver ~= 1.2 then
 				error("Invalid API version")
 			end
 			-- print("API", apiver)
@@ -659,6 +659,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				error(err)
 			end
 			return f()
+		end
+		if apiver >= 1.2 then
+			for k, v in pairs(wrapmods) do
+				fenv[k] = v
+			end
 		end
 		fenv.owner = function(x, ...)
 			if not x then
@@ -892,6 +897,23 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				end
 			end
 		})
+		local wrapmod = {}
+		-- Copy these in so the mod looks generally the same.
+		for k, v in pairs(m) do
+			wrapmod[k] = v
+		end
+		setmetatable(wrapmod, { __index = function(t, k)
+				local v = m[k]
+				if type(v) == "function" then
+					local newv = function(...)
+							return env.etc.on_udf_call(apiver, modname, k, v, ...)
+						end
+					wrapmod[k] = newv
+					return newv
+				end
+				return v
+			end })
+		wrapmods[modname] = wrapmod
 	end
 	env.arg = {}
 	hlp.Cache = "Cache local to your account; restricted to simple data types and has size and time limitations"
