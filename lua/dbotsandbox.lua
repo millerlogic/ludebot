@@ -797,7 +797,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		local modname = modinfo.name
 		env[modname] = m
 		hlp[modname] = "Module " .. modname .. " - " .. (modinfo.desc or 'Information not available')
-		if modname == "etc" then
+		if modname == "etc" or modinfo.mirror == "etc" then
 			m.cmdchar = "'"
 		end
 		m.cmdprefix = m.cmdchar or ("'" .. modname .. ".")

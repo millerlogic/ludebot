@@ -74,7 +74,7 @@ end)
 dbotBgTimer:start()
 
 
-function getUdfInfo(moduleName, funcName)
+function getUdfInfo(moduleName, funcName, checkmirror)
 	local udf = dbotData["udf"]
 	if udf then
 		local m = udf[moduleName]
@@ -84,12 +84,30 @@ function getUdfInfo(moduleName, funcName)
 				return finfo
 			end
 		end
+		if checkmirror ~= false then
+			local modinfo = getUserCodeModuleInfo(moduleName)
+			if modinfo and modinfo.mirror then
+				finfo = getUdfInfo(modinfo.mirror, funcName, false)
+				if finfo then
+					local xfinfo = { }
+					for k, v in pairs(finfo) do
+						xfinfo[k] = v
+					end
+					xfinfo.id = "id_mirror_code"
+					xfinfo.mcode = "return " .. modinfo.mirror .. "." .. funcName .. "(...)\n"
+					return xfinfo
+				end
+			end
+		end
 	end
 end
 
 
 -- finfo is an object returned by getUdfInfo.
 function loadUdfCode(finfo)
+	if finfo.mcode then
+		return finfo.mcode
+	end
 	local f, err = io.open("./udf/" .. finfo.id)
 	if not f then
 		return nil, err
@@ -109,16 +127,24 @@ end
 
 
 userCodeModuleInfo = {
-	{ name="etc",    creator="dbot", desc="User-created functions" },
-	{ name="plugin", creator="dbot", desc="Return a table of helper functions" },
-	{ name="tests",  creator="dbot", desc="Running tests on user functions" },
+	{ name="etc",    creator="dbot", desc="User-created functions / commands", mirror = "util", },
+	{ name="util",    creator="dbot", desc="User-created utility functions", mirror = "etc", },
+	{ name="plugin", creator="dbot", desc="Return a table of helper functions", },
+	{ name="tests",  creator="dbot", desc="Running tests on user functions", },
 }
 
-function isUserCodeModuleName(moduleName)
+function getUserCodeModuleInfo(moduleName)
 	for i, modinfo in ipairs(userCodeModuleInfo) do
 		if modinfo.name == moduleName then
-			return true
+			return modinfo
 		end
+	end
+	return false
+end
+
+function isUserCodeModuleName(moduleName)
+	if getUserCodeModuleInfo(moduleName) then
+		return true
 	end
 	return false
 end
@@ -199,8 +225,9 @@ end
 
 
 -- Does NOT validate correct module name or function name.
-function accountCanSaveUdf(acct, moduleName, funcName)
+function accountCanSaveUdf(acct, moduleName, funcName, checkmirror)
 	if acct.id == 0 then
+		-- Note: guest account ID is not 0! This is something historical.
 		return false, "Guest cannot save functions"
 	end
 	local finfo = getUdfInfo(moduleName, funcName)
@@ -210,9 +237,8 @@ function accountCanSaveUdf(acct, moduleName, funcName)
 		if finfo.acctID ~= acct.id and finfo.chacctID ~= acct.id then
 			return false, "Access denied"
 		end
-		return true -- Found it with the correct owner and same case, so we're done.
-	end
-	do
+		-- Found it with the correct owner and same case, so we're done.
+	else
 		-- Now make sure the function doesn't exist with different case.
 		local udf = dbotData["udf"]
 		if udf then
@@ -227,9 +253,14 @@ function accountCanSaveUdf(acct, moduleName, funcName)
 			end
 		end
 	end
+	if checkmirror ~= false then
+		local modinfo = getUserCodeModuleInfo(moduleName)
+		if modinfo and modinfo.mirror then
+			return accountCanSaveUdf(acct, modinfo.mirror, funcName, false)
+		end
+	end
 	return true
 end
-
 
 -- Validates access to save this function for the specified user account,
 -- and fills in extra user info in the finfo object.
@@ -247,9 +278,12 @@ function accountSaveUdf(acct, moduleName, funcName, funcCode, isNew)
 			return a, b
 		end
 	end
-	local finfo = getUdfInfo(moduleName, funcName)
+	-- Note: this getUdfInfo is only to prevent overwriting an existing func with a create.
+	-- So we need to skip checking the mirror module.
+	local finfo = getUdfInfo(moduleName, funcName, false)
 	if finfo then
 		if isNew then
+			assert(not finfo.mcode, "found mcode when not looking up mirror")
 			return nil, "Function already exists"
 		end
 	end
