@@ -128,7 +128,7 @@ function cmd_ticket(state, client, sender, target, cmd, args)
 		acct.spw = tostring(math.random(1, 999999))
 		acct.tikc = os.time()
 		acct.webuseraddr = nil
-		client:sendNotice(nick, dbotPortalURL .. "t/?ticket=" .. urlEncode(t)
+		client:sendNotice(nick, "["..chan.."] "..dbotPortalURL .. "t/?ticket=" .. urlEncode(t)
 			.. " - access to your ticket code " .. t
 			.. " (if you need to disable this ticket, issue another ticket command)"
 			)
