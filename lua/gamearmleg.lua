@@ -416,7 +416,7 @@ function doAutoBotTrades2()
 					if x.outs >= mintrades then
 						local totalshares, _, totsyms = getUserStockCount(tradername)
 						local thisshares = getUserStockCount(tradername, sym)
-						if thisshares > 10 and totalshares > math.random(75, 100 + totsyms * 10) then
+						if thisshares > math.random(10, 75) or totalshares > math.random(75, 100 + totsyms * 10) then
 							print("Skipping buying shares due to total share bot limit", tradername, sym, x.outs)
 							x.outs = 0
 						else
