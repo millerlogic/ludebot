@@ -174,6 +174,26 @@ function addNewStockSymbol(symbol, owner)
 end
 
 
+stockSectors = {
+"Agriculture",
+"Basic Materials",
+"Consumer Goods",
+"Drugs",
+"Energy",
+"Financial",
+"Food",
+"Healthcare",
+"Industrial Goods",
+"Insurance",
+"Media",
+"Real Estate",
+"Services",
+"Technology",
+"Transportation",
+"Utilities",
+}
+
+
 function doAutoStockValue()
 	--[===[
 	print("---")
@@ -3221,22 +3241,31 @@ botExpectChannelBotCommand("$sell", bot_sell_cmd)
 
 
 armleghelp.value = "Get value information for the provided botstock symbol"
-botExpectChannelBotCommand("$value", function(state, client, sender, target, cmd, args)
+botExpectChannelBotCommand("$suit", function(state, client, sender, target, cmd, args)
+	local chan = client:channelNameFromTarget(target)
+	client:sendMsg(chan, "4♥ heart, 1♠ spade, 4♦ diamond, 1♣ club")
+end)
+
+
+armleghelp.sectors = "Get a list of the stock sectors"
+botExpectChannelBotCommand("$sectors", function(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
-	local symbol = args:upper()
-	if symbol == '' then
-		symbol = "BOT.BOT"
-	end
-	local stock = alData.stockdata[symbol]
-	if not stock then
-		client:sendMsg(chan, "No information for stock symbol " .. symbol, "armleg")
-	else
-		local value = calcNextSharePrice(stock.vcap, stock.shareCount, stock.B)
-		client:sendMsg(chan, symbol .. " is currently valued at $" .. math.floor(value)
-			-- .. " trade, with " .. ((stock.maxShares or 100) - stock.shareCount) .. " shares available for purchase"
-			, "armleg")
-	end
+	local dest = chan or nick
+	local str = table.concat(stockSectors, ", ")
+	client:sendMsg(dest, str)
+end)
+
+
+botExpectChannelBotCommand("$suit", function(state, client, sender, target, cmd, args)
+	local chan = client:channelNameFromTarget(target)
+	client:sendMsg(chan, "4♥ heart, 1♠ spade, 4♦ diamond, 1♣ club")
+end)
+
+
+botExpectChannelBotCommand("$suitde", function(state, client, sender, target, cmd, args)
+	local chan = client:channelNameFromTarget(target)
+	client:sendMsg(chan, "4♥ herz, 1♠ pik, 4♦ karo, 1♣ kreuz")
 end)
 
 
