@@ -289,15 +289,17 @@ function doAutoBotTrades1()
 							-- Don't own too many of total shares.
 							print(invnick .. " owns too many " .. sym)
 						else
-							directBuyShare(invnick, sym, 3, 'auto') -- Bypasses event log.
+							local howmany = math.random(1, 5)
+							directBuyShare(invnick, sym, howmany, 'auto') -- Bypasses event log.
 							if log_event then
-								log_event("stock_trade_auto", invnick .. " buy 3 " .. sym)
+								log_event("stock_trade_auto", invnick .. " buy " .. howmany .. " " .. sym)
 							end
 						end
 					elseif bbb <= -1 then
-						if directSellShare(invnick, sym, 3, 'auto')  then
+						local directSellShare(invnick, sym, math.random(1, 5), 'auto')
+						if howmany  then
 							if log_event then
-								log_event("stock_trade_auto", invnick .. " sell 3 " .. sym)
+								log_event("stock_trade_auto", invnick .. " sell " .. howmany .. " " .. sym)
 							end
 						end
 					end
