@@ -296,7 +296,7 @@ function doAutoBotTrades1()
 							end
 						end
 					elseif bbb <= -1 then
-						local directSellShare(invnick, sym, math.random(1, 5), 'auto')
+						local howmany = directSellShare(invnick, sym, math.random(1, 5), 'auto')
 						if howmany  then
 							if log_event then
 								log_event("stock_trade_auto", invnick .. " sell " .. howmany .. " " .. sym)
