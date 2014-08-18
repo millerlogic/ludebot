@@ -2928,7 +2928,7 @@ function getUserStockCount(nick, symbol)
 			return n, symbol, syms
 		end
 	end
-	return 0, symbol
+	return 0, symbol, 0
 end
 
 
