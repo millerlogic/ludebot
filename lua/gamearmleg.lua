@@ -692,7 +692,13 @@ function cardString(card, snazzy)
 	local bold = bold or ""
 	local color = color or ""
 	local printvalue = card.value
-	if card.value:find("^%a") then
+	if card.joker then
+		if card.suit:sub(1, 1) == 'H' then
+			printvalue = "🃟"
+		else
+			printvalue = "🃏"
+		end
+	elseif card.value:find("^%a") then
 		printvalue = card.value:sub(1, 1)
 	end
 	if snazzy ~= false then
