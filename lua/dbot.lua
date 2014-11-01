@@ -911,6 +911,8 @@ botExpect("PM#", function(state, client, sender, target, msg)
 	local nick = nickFromSource(sender)
 	local word, args
 	local query = false
+	
+	--[[ -- Old way of =? and =\?
 	if msg:sub(1, 2) == "=?" then
 		word, args = msg:match("=%?([^ ]+) ?(.*)")
 	elseif msg:sub(1, 3) == "=\\?" then
@@ -921,6 +923,14 @@ botExpect("PM#", function(state, client, sender, target, msg)
 	elseif msg:sub(1, 2) == "\\?" then
 		return "stop"
 	end
+	--]]
+	if msg:sub(1, 1) == "?" then
+		word, args = msg:match("^%?([^ ]+) ?(.*)")
+	elseif msg:sub(1, 2) == "!?" then
+		word, args = msg:match("^!%?([^ ]+) ?(.*)")
+		query = true
+	end
+	
 	if word then
 		local w, time, whoset, text = infomainGet(word)
 		if not w then
