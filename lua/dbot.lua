@@ -34,7 +34,10 @@ dbotIncs = { -- TODO: move to config.
 	"ltelnet",
 }
 for i, req in ipairs(dbotIncs) do
-	include(req)
+	local a, b = include(req)
+	if not a then
+		print("Info: did not load optional include " .. req .. ": " .. tostring(b))
+	end
 end
 
 -- TODO: move to config.

@@ -289,7 +289,7 @@ function doAutoBotTrades1()
 							-- Don't own too many of total shares.
 							print(invnick .. " owns too many " .. sym)
 						else
-							local howmany = math.random(1, 5)
+							local howmany = math.random(1, 2)
 							directBuyShare(invnick, sym, howmany, 'auto') -- Bypasses event log.
 							if log_event then
 								log_event("stock_trade_auto", invnick .. " buy " .. howmany .. " " .. sym)
@@ -694,9 +694,9 @@ function cardString(card, snazzy)
 	local printvalue = card.value
 	if card.joker then
 		if card.suit:sub(1, 1) == 'H' then
-			printvalue = "🃟"
+			printvalue = "RedJoker"
 		else
-			printvalue = "🃏"
+			printvalue = "BlackJoker"
 		end
 	elseif card.value:find("^%a") then
 		printvalue = card.value:sub(1, 1)

@@ -1392,7 +1392,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		failNotCodeTrusted = true
 	end
 	hlp.cash = "Returns the amount of cash the caller has, or for the provided user"
-	renv.cash = function(who)
+	env.cash = function(who)
 		return cash(who or env.nick)
 	end
 	hlp.worth = "Similar to cash(), but also includes the value of investments"
@@ -2223,7 +2223,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.getuid = sbgetuid
 	hlp.getname = "Returns the user name for the current script owner or the provided account number"
 	env.getname = getname
-	hlp.owner = "Returns the account ID of the owner of the specified function (function reference, not name)"
+	hlp.owner = "Returns the account ID of the owner of the specified function (function reference, not name). This function is deprecated, use _getCallInfo instead."
 	env.owner = function(x)
 		-- if env.Editor then -- HACK?
 			if not x then
