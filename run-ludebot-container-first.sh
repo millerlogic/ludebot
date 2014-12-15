@@ -12,6 +12,8 @@ fi
 
 cd "$dir"
 
+mkdir -p ludebot-state
+
 if [ ! -f ludebot-state/ludebot.conf ]; then
   cp ludebot/ludebot.conf.example ludebot-state/ludebot.conf
   echo "Created a new $dir/ludebot-state/ludebot.conf" >&2
@@ -23,10 +25,10 @@ docker build -t millerlogic/irccmd "irccmd" || exit 1
 
 docker build -t millerlogic/ludebot "ludebot" || exit 1
 
-mkdir -p ludebot-state
-
 echo "Warning: about to write a clean state with blank data files..." >&2
 sleep 3
 echo "Running as firstrun..." >&2
+
+chmod a+rw ludebot-state
 
 ./ludebot/run-ludebot-container.sh "." "$containerName" "first"
