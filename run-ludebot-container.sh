@@ -24,8 +24,5 @@ fi
 docker run \
   --name "$containerName" \
   -e "LUDEBOT_RUN=$WHATRUN" \
-  -v $dir/ludebot:/ludebot \
-  -v $dir/irccmd:/irccmd \
-  -v $dir/luasandy:/luasandy \
   -v $dir/ludebot-state:/ludebot-state \
   millerlogic/ludebot
