@@ -21,9 +21,7 @@ if [ ! -f ludebot-state/ludebot.conf ]; then
   exit 222
 fi
 
-docker build -t millerlogic/irccmd "irccmd" || exit 1
-
-docker build -t millerlogic/ludebot "ludebot" || exit 1
+./ludebot/build-ludebot-container.sh "."
 
 echo "Warning: about to write a clean state with blank data files..." >&2
 sleep 3
