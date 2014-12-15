@@ -18,7 +18,7 @@ RUN mkdir -p /luasandy/lua
 RUN wget --no-check-certificate -O/luasandy/lua/sandbox.lua https://raw.githubusercontent.com/millerlogic/luasandy/409ee4babf1a55417df79404d39cb0eeba4de602/lua/sandbox.lua
 
 ENV IRCCMD_PATH /irccmd/irccmd
-ENV LUDEBOT_LUA_PATH "/ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;"
+ENV LUDEBOT_LUA_PATH /ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;
 
 RUN groupadd -g 1003 ludebot
 RUN useradd -u 1003 -N -g ludebot ludebot
@@ -29,4 +29,4 @@ ENV LUDEBOT_RUN next # default
 ADD ./ /ludebot
 
 USER ludebot
-CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -flag=${LUDEBOT_RUN}run >>/ludebot-state/ludebot.out
+CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -- -flag=${LUDEBOT_RUN}run >>/ludebot-state/ludebot.out
