@@ -21,9 +21,7 @@ local hcRHmt = {
 function HttpClient:init()
 	SocketClient.init(self)
 	self.headers = {}
-	-- self.headers["User-Agent"] = "Lynx/2.8.5rel.4 libwww-FM/2.14"
-	-- self.headers["User-Agent"] = "Mozilla/4.0 (compatible;)"
-	self.headers["User-Agent"] = "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9) Gecko/2008061017 Firefox/3.0"
+	self.headers["User-Agent"] = "Mozilla/5.0 (compatible; like Gecko) lude/3.0"
 	self.headers["Accept"] = "*/*"
 	self.headers["Accept-Charset"] = "utf-8"
 	self.headers["Accept-Language"] = "en-us"
