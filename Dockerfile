@@ -20,17 +20,18 @@ RUN wget --no-check-certificate -O/luasandy/lua/sandbox.lua https://raw.githubus
 ENV IRCCMD_PATH /irccmd/irccmd
 ENV LUDEBOT_LUA_PATH /ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;
 
-RUN groupadd -g 1003 ludebot
-RUN useradd -u 1003 -N -g ludebot ludebot
-
 ENV LUDEBOT_RUN next # default
 
 # Add the host dir.
 ADD ./ /ludebot
 
+RUN groupadd -g 28101 container || echo
+RUN useradd -u 28101 -N -g 28101 container || echo
+
 RUN mkdir /ludebot-state
+RUN chown container:container /ludebot-state
 
 VOLUME ["/var/log", "/ludebot-state"]
 
-USER ludebot
+USER container
 CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
