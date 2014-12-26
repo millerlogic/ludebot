@@ -29,4 +29,4 @@ ENV LUDEBOT_RUN next # default
 ADD ./ /ludebot
 
 USER ludebot
-CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -- -flag=${LUDEBOT_RUN}run >>/ludebot-state/ludebot.out
+CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
