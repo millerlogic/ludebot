@@ -2,13 +2,13 @@
 
 set -e
 
-dir=$(readlink -f "$1")
-containerName="$2"
-
-if [ x"$dir" == x"" ]; then
+if [ x"$1" == x"" ]; then
   echo "Path needed"
   exit 1
 fi
+
+dir=$(readlink -f "$1")
+containerName="$2"
 
 if [ x"$containerName" == x"" ]; then
   containerName=ludebot
