@@ -28,7 +28,7 @@ ENV LUDEBOT_RUN next # default
 # Add the host dir.
 ADD ./ /ludebot
 
-CMD mkdir /ludebot-state
+RUN mkdir /ludebot-state
 
 VOLUME ["/var/log", "/ludebot-state"]
 
