@@ -28,5 +28,9 @@ ENV LUDEBOT_RUN next # default
 # Add the host dir.
 ADD ./ /ludebot
 
+CMD mkdir /ludebot-state
+
+VOLUME ["/var/log", "/ludebot-state"]
+
 USER ludebot
 CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
