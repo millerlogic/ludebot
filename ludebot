@@ -36,7 +36,7 @@ local shell_escape = function(...)
 end
 
 -- Build argument list.
-local argv = {config.IRCCMD_PATH or os.getenv("IRCCMD_PATH") or "../../irccmd/irccmd"}
+local argv = {config.IRCCMD_PATH or os.getenv("IRCCMD_PATH") or "../irccmd/irccmd"}
 argv[#argv + 1] = config.server
 argv[#argv + 1] = config.nick
 
@@ -72,6 +72,6 @@ local exec = function(s)
 	return os.execute(s)
 end
 
-local LUA_PATH = config.LUDEBOT_LUA_PATH or os.getenv("LUDEBOT_LUA_PATH") or "../../ludebot/lua/?.lua;../../irccmd/lua/?.lua;../../luasandy/lua/?.lua;;"
+local LUA_PATH = config.LUDEBOT_LUA_PATH or os.getenv("LUDEBOT_LUA_PATH") or "../ludebot/lua/?.lua;../irccmd/lua/?.lua;../luasandy/lua/?.lua;;"
 
 return exec("LUA_PATH="..shell_escape(LUA_PATH).." "..shell_escape(argv))
