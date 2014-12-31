@@ -19,6 +19,8 @@ function createCache()
 	local cMT = {}
 	cMT.cache = {} -- Real cache values.
 	cMT.used = 0 -- Current number of bytes used by this cache.
+	cMT.ordNum = 0 -- Order number.
+	cMT.last = os.time()
 	-- Setting:
 	cMT.__newindex = function(t, k, v)
 		-- if v == nil then return end
@@ -40,20 +42,24 @@ function createCache()
 		if v == nil then
 			-- print("NIL", t, k, v)
 			-- Special case, just remove the old size.
-			v = rawget(cMT.cache, k)
-			vsize = getVarSize(v)
-			rawset(cMT.cache, k, nil)
-			cMT.used = cMT.used - vsize
-			cMT.used = cMT.used - ksize
+			v = cMT.cache[k]
+			if v ~= nil then
+				vsize = getVarSize(v)
+				cMT.cache[k] = nil
+				cMT["$ord" .. k] = nil
+				cMT.used = cMT.used - vsize
+				cMT.used = cMT.used - ksize
+				assert(cMT.used >= 0, "Cache usage underflow")
+			end
 			return
 		end
 		local oldvsize = 0
 		local isnew = true
 		do
-			local oldv = rawget(cMT.cache, k)
+			local oldv = cMT.cache[k]
 			if oldv then
 				isnew = false
-				oldvsize = getVarSize(v)
+				oldvsize = getVarSize(oldv)
 			end
 		end
 		vsize = getVarSize(v)
@@ -62,43 +68,41 @@ function createCache()
 		if vsize > 1024 * 4 then
 			error("Cache value too large (" .. vsize .. "B)")
 		end
-		local now = os.time()
-		rawset(cMT.cache, k, v)
-		rawset(cMT, "$time" .. k, now) -- Time stored in cMT as "$time"..k
+		cMT.cache[k] = v
+		cMT.ordNum = cMT.ordNum + 1
+		cMT["$ord" .. k] = cMT.ordNum -- Cache order stored in cMT as "$ord"..k
 		cMT.used = cMT.used - oldvsize + vsize
 		if isnew then
 			cMT.used = cMT.used + ksize
 		end
+		cMT.last = os.time()
 		while cMT.used > 1024 * 8 do
 			-- While we're past the cache size, expire the oldest cached variable.
 			local oldestKey = nil
-			local oldestTime = now
+			local oldestOrd = math.huge
 			for xk, xv in pairs(cMT.cache) do
-				local xtk = "$time" .. xk
-				if cMT[xtk] <= oldestTime then
-					oldestTime = cMT[xtk]
+				local xtk = "$ord" .. xk
+				if cMT[xtk] <= oldestOrd then
+					oldestOrd = cMT[xtk]
 					oldestKey = xk
 				end
 			end
-			if not oldestKey then
+			if oldestKey == nil then
 				print("Cache Expire:", "(no oldest key)", "(used=" .. cMT.used .. ")")
 				break
 			end
-			vsize = getVarSize(rawget(cMT.cache, oldestKey))
-			-- rawset(cMT.cache, oldestKey) -- arg3 must not be nil
-			-- rawset(cMT, "$time" .. oldestKey) -- ditto
-			cMT.cache[oldestKey] = nil
-			cMT["$time" .. oldestKey] = nil
-			cMT.used = cMT.used - vsize
-			cMT.used = cMT.used - oldestKey:len()
+			t[oldestKey] = nil
 			print("Cache Expire:", oldestKey, "(new used=" .. cMT.used .. ")") -- DEBUG
 		end
+		assert(cMT.used >= 0, "Cache usage underflow")
 	end
 	-- Getting:
 	cMT.__index = function(t, k)
-		local v = rawget(cMT.cache, k)
+		local v = cMT.cache[k]
 		if v then
-			rawset(cMT, "$time" .. k, os.time()) -- Update time for cache read.
+			cMT.ordNum = cMT.ordNum + 1
+			cMT["$ord" .. k] = cMT.ordNum -- Update ord for cache read.
+			cMT.last = os.time()
 		end
 		return v
 	end
@@ -109,6 +113,7 @@ end
 
 
 caches = caches or {} -- array of user Cache memory
+lastCacheClean = lastCacheClean or os.time()
 
 function getCache(name, demand)
 	name = name:lower()
@@ -117,6 +122,15 @@ function getCache(name, demand)
 		c = createCache()
 		caches[name] = c
 	end
+	if c and (os.time() - lastCacheClean > 60 * 60 * 12) then
+		for xk, xc in pairs(caches) do
+			local xcMT = getmetatable(xc)
+			if xc ~= c and xcMT.ordNum > 0xFFFFFF or (os.time() - xcMT.last) > 60 * 60 * 24 * 2 then
+				print("Expiring entire cache named " .. xk)
+				caches[xk] = nil
+			end
+		end
+	end
 	return c
 end
 
@@ -124,3 +138,37 @@ function getUserCache(name, demand)
 	return getCache("user:" .. name, demand)
 end
 
+if _debug then
+	local cache = createCache()
+	assert(getmetatable(cache).used == 0)
+	
+	for i = 300, 0, -1 do
+		cache.foo = string.rep("x", i)
+		assert(cache.foo)
+	end
+	cache.foo = nil
+	assert(getmetatable(cache).used == 0)
+	
+	for i = 1, 20 do
+		cache["bar" .. i] = i
+		assert("bar" .. i)
+		cache["bar" .. i] = nil
+	end
+	assert(getmetatable(cache).used == 0)
+	
+	for i = 1, 100 do
+		cache["baz" .. i] = string.rep("x", 1000 + i)
+		assert(cache["baz" .. i])
+	end
+	for i = 1, 100 do
+		cache["baz" .. i] = nil
+	end
+	assert(getmetatable(cache).used == 0)
+	
+	for i = 1, 100 do
+		cache["nil" .. i] = nil
+	end
+	assert(getmetatable(cache).used == 0)
+	
+	print("cache test success")
+end
