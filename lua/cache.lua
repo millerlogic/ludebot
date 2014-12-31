@@ -7,7 +7,7 @@ function getVarSize(v)
 	local vtype = type(v)
 	if vtype == "nil" then return 0 end
 	if vtype == "number" then return 8 end
-	if vtype == "string" then return v:len() end
+	if vtype == "string" then return 4 + string.len(v) end
 	if vtype == "table" then return 64 end
 	if vtype == "boolean" then return 4 end
 	error("Unknown size for type " .. vtype)
