@@ -2387,14 +2387,16 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return nil, "Not seen"
 	end
+	--[[
 	env.boost = function()
 		-- BOOST IS VERY DANGEROUS, EASILY CAUSES INFINITE LOOP!
-		if acct and acct:demand("god") then
+		if acct and acct:demand("god") then -- Calling demand on wrong account.
 			threadHook(coro, dbotCpuLimit * 2)
 			return true
 		end
 		error("No boost")
 	end
+	--]]
 	hlp.globToLuaPattern = "Converts a glob or wildcard string into a lua pattern"
 	env.globToLuaPattern = globToLuaPattern
 	hlp.seed = "Set to a random number seed at script startup"
@@ -2748,11 +2750,17 @@ function setUnitEnv(env, allowHttp, allowSleep, allowInput)
 	end
 	if not allowHttp then
 		env.httpGet = function(url, callback)
-			if not callback or fakeHttpGetCallback then
-				return false, "Test error from httpGet"
+			if not callback then
+				return false, "Test error from http"
 			end
 			env._unit_http = callback
 			return true
+		end
+		env.httpPost = function(url, body, callback)
+			return env.httpGet(url, callback)
+		end
+		env.httpRequest = function()
+			return false, "Test error from http"
 		end
 	end
 	if not allowSleep then
@@ -2775,7 +2783,7 @@ function setUnitEnv(env, allowHttp, allowSleep, allowInput)
 		-- Do NOT call _unitDone outside the sandbox!
 		env._unitDone = function()
 			if env._unit_http then
-				env._unit_http(nil, "Test error from httpGet")
+				env._unit_http(nil, "Test error from http")
 			end
 			if env._unit_timeout1 then
 				env._unit_timeout1()
@@ -2786,7 +2794,7 @@ function setUnitEnv(env, allowHttp, allowSleep, allowInput)
 		end
 	end
 	env.input = function() return nil, nil, "input timeout" end
-	env.reenterFunc = function() env.halt(); return false, "Cannot reenter from web" end
+	env.reenterFunc = function() env.halt(); return false, "Cannot reenter from here" end
 	env.reenter = function() return env.reenterFunc() end
 end
 
