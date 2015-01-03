@@ -1208,7 +1208,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				return nil, "No such network"
 			end
 		end
-		local t = whichclient._topics[where]
+		local t = whichclient._topics[where or chan]
 		if t then
 			return t.topic, t.set_by, t.ts
 		end
