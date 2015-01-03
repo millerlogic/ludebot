@@ -166,6 +166,7 @@ function saveUdf(moduleName, funcName, funcCode)
 	if not udf then
 		udf = {}
 		dbotData["udf"] = udf
+		os.execute("mkdir ./udf/")
 	end
 	local m = udf[moduleName]
 	if not m then

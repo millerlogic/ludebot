@@ -10,10 +10,10 @@ require("html")
 
 
 if not dbotPortal then
-	dbotPortalHost = "localhost"
-	dbotPortalUserHost = "localhost"
+	dbotPortalHost = "127.0.0.1"
+	dbotPortalUserHost = "127.0.0.2"
 	dbotPortalPort = 8000 -- Note: httpGet can request from the same host.
-	dbotPortalRoot = "./portal"
+	dbotPortalRoot = "./lua/portal"
 	do
 		-- Load up local info if available.
 		local a, b = loadfile("dbotportal_info.lua")

@@ -1289,6 +1289,13 @@ if irccmd then
 end
 
 
+if firstrun then
+	-- Setup /user for the user's sandbox.
+	local fso = FSO(DbotFSProvider(getname), 0)
+	fso:mkdir("/user")
+end
+
+
 -- Ping the servers periodically so I can quicker detect disconnections.
 pingTimer = pingTimer or Timer(60 * 2, function(timer)
 	for i, client in ipairs(ircclients) do
