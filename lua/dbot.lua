@@ -15,6 +15,7 @@ dbotReqs = {
 	"dbotconfig",
 	"dbotsandbox",
 	"ircnicklist",
+	"irctopic",
 	"dbotportal",
 	"fsodbot",
 	"dbotscript",
