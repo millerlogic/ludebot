@@ -1193,6 +1193,26 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return getSortedNickList(whichclient, xchan, false)
 	end
+	hlp.topic = "Topic for channel, can supply optional channel name and network"
+	env.topic = function(where, network)
+		local whichclient = client
+		if network then
+			whichclient = nil
+			for icc, cc in ipairs(ircclients) do
+				if network:lower() == (cc:network() or ''):lower() then
+					whichclient = cc
+					break
+				end
+			end
+			if not whichclient then
+				return nil, "No such network"
+			end
+		end
+		local t = whichclient._topics[where]
+		if t then
+			return t.topic, t.set_by, t.ts
+		end
+	end
 	hlp._memusage = "Total memory in use by Lua in Kbytes"
 	env._memusage = function()
 		return collectgarbage('count'), 'Kbytes', 'total memory in use by Lua'
