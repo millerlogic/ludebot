@@ -358,14 +358,15 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		end
 		processHtdFile(dbotPortalRoot .. "/_events.htd", user, vuri, qs,
 			{ nick = nick, rootVUrl = dbotPortalPrefixVUrl }, acct)
-	elseif vuri:find("^" .. dbotPortalPrefixUserVUrl .. "u/") or vuri:find("^" .. dbotPortalPrefixVUrl .. "u/") then
+	elseif vuri:find("^/u/") or  vuri:find("^" .. dbotPortalPrefixUserVUrl .. "u/")
+			or vuri:find("^" .. dbotPortalPrefixVUrl .. "u/") then
 		local nick = "Guest"
 		if acct then
 			nick = acct:nick()
 		end
-		local uname, uvurl = vuri:match("^" .. dbotPortalPrefixUserVUrl .. "u/([^/%.]+)(/.*)")
+		local uname, uvurl = vuri:match("/u/([^/%.]+)(/.*)")
 		if not uname then
-			-- Consider redirect.
+			-- Consider the redirect.
 			uname, uvurl = vuri:match("^" .. dbotPortalPrefixVUrl .. "u/([^/%.]+)(/.*)")
 		end
 		if uname and uvurl then
