@@ -358,12 +358,16 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		end
 		processHtdFile(dbotPortalRoot .. "/_events.htd", user, vuri, qs,
 			{ nick = nick, rootVUrl = dbotPortalPrefixVUrl }, acct)
-	elseif vuri:find("^" .. dbotPortalPrefixUserVUrl .. "u/") then
+	elseif vuri:find("^" .. dbotPortalPrefixUserVUrl .. "u/") or vuri:find("^" .. dbotPortalPrefixVUrl .. "u/") then
 		local nick = "Guest"
 		if acct then
 			nick = acct:nick()
 		end
 		local uname, uvurl = vuri:match("^" .. dbotPortalPrefixUserVUrl .. "u/([^/%.]+)(/.*)")
+		if not uname then
+			-- Consider redirect.
+			uname, uvurl = vuri:match("^" .. dbotPortalPrefixVUrl .. "u/([^/%.]+)(/.*)")
+		end
 		if uname and uvurl then
 			if headers["Host"] ~= dbotPortalUserHost
           and headers["Host"] ~= dbotPortalUserHost .. ":" .. dbotPortalPort then
@@ -372,7 +376,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 				user.responseStatusCode = "307"
 				user.responseHeaders["Location"] = ( dbotPortalForceUserURL or
 					"http://" .. dbotPortalUserHost .. ":" .. dbotPortalPort )
-						.. vuri .. (qs or '')
+						.. dbotPortalPrefixUserVUrl .. vuri:match("(u/.*)") .. (qs or '')
 				return
 			end
 			uname = urlDecode(uname)

@@ -5,7 +5,7 @@
 -- License: GPLv3, see LICENSE file.
 
 function getCashInfo(user, vuri, qs, acct)
-	local nick = urlDecode(vuri:match("^/u/(.+)$"))
+	local nick = urlDecode(vuri:match("/u/(.+)$"))
 	if not nick then
 		return "N/A"
 	end
@@ -23,7 +23,7 @@ function getCashInfo(user, vuri, qs, acct)
 			for k, v in pairs(ustocks) do
 				local x = calcSharesTotalPrice(k, v.count)
 				gtotal = gtotal + x
-				s = s .. "<br>" .. v.count .. " shares of <a class=\"stocklink\" href=\"/botstock?q=" .. k .. "\" target=\"" .. k:gsub("%.", "_") .. "\">" .. k .. "</a> ($" .. math.floor(x) .. ")"
+				s = s .. "<br>" .. v.count .. " shares of <a class=\"stocklink\" href=\"" .. rootVUrl .. "t/botstock?q=" .. k .. "\" target=\"" .. k:gsub("%.", "_") .. "\">" .. k .. "</a> ($" .. math.floor(x) .. ")"
 				if q == nil then
 					q = k
 				else
@@ -34,7 +34,7 @@ function getCashInfo(user, vuri, qs, acct)
 	end
 	if q then
 		s = s .. "<br> * Grand total: $" .. math.floor(gtotal)
-		s = s .. "<br><iframe src=\"/botstock?plain=week&q=" .. q .. "\" frameBorder=\"0\" style=\"width: 416px; height: 276px; overflow: hidden;\" scrolling=\"no\" ></iframe>"
+		s = s .. "<br><iframe src=\"" .. rootVUrl .. "t/botstock?plain=week&q=" .. q .. "\" frameBorder=\"0\" style=\"width: 416px; height: 276px; overflow: hidden;\" scrolling=\"no\" ></iframe>"
 	end
 	local tip = findTrader(nick)
 	if tip then
