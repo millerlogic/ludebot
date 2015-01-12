@@ -18,10 +18,8 @@ if not dbotPortal then
 	dbotPortalPrefixUserVUrl = "/" -- Must end in slash.
 	do
 		-- Load up local info if available.
-		local a, b = loadfile("dbotportal_info.lua")
-		if a then
-			a()
-		end
+		-- Reload: \reload dbotportal_info
+		include("dbotportal_info.lua")
 	end
 
 	dbotPortal = HttpServer(manager)
