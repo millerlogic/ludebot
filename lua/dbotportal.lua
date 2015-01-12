@@ -286,6 +286,9 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 	if qs then
 		vuri = x
 	end
+	if vuri:sub(1, 3) == "/t/" then
+		vuri = dbotPortalPrefixVUrl.."t/" .. vuri:sub(4)
+	end
 	local newticket = vuri == (dbotPortalPrefixVUrl.."t/") and qs and qs:sub(1, 8) == "?ticket="
 	local acct
 	if not newticket then
@@ -517,7 +520,9 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			or vuri == dbotPortalPrefixVUrl.."t/view" or vuri == dbotPortalPrefixVUrl.."t/alias" then
 		if vuri ~= dbotPortalPrefixVUrl.."t/view" then
 			if not acct then
+				print("no ticket 401")
 				user.responseStatusCode = "401"
+				user:send("<a href='" .. dbotPortalForceUserURL .. vuri .. (qs or '') .. "'>Unauthorized?</a>")
 				return
 			end
 		end
