@@ -19,7 +19,7 @@ function getCashInfo(user, vuri, qs, acct)
 			for k, v in pairs(ustocks) do
 				local x = calcSharesTotalPrice(k, v.count)
 				gtotal = gtotal + x
-				s = s .. "<br>" .. v.count .. " shares of <a class=\"stocklink\" href=\"/botstock?q=" .. k .. "\" target=\"" .. k:gsub("%.", "_") .. "\">" .. k .. "</a> ($" .. math.floor(x) .. ")"
+				s = s .. "<br>" .. v.count .. " shares of <a class=\"stocklink\" href=\"" .. rootVUrl .. "t/botstock?q=" .. k .. "\" target=\"" .. k:gsub("%.", "_") .. "\">" .. k .. "</a> ($" .. math.floor(x) .. ")"
 				if q == nil then
 					q = k
 				else
@@ -30,7 +30,7 @@ function getCashInfo(user, vuri, qs, acct)
 	end
 	if q then
 		s = s .. "<br> * Grand total: $" .. math.floor(gtotal)
-		s = s .. "<br><iframe src=\"/botstock?plain=week&q=" .. q .. "\" frameBorder=\"0\" style=\"width: 416px; height: 276px; overflow: hidden;\" scrolling=\"no\" ></iframe>"
+		s = s .. "<br><iframe src=\"" .. rootVUrl .. "t/botstock?plain=week&q=" .. q .. "\" frameBorder=\"0\" style=\"width: 416px; height: 276px; overflow: hidden;\" scrolling=\"no\" ></iframe>"
 	end
 	return s
 end
@@ -50,8 +50,8 @@ end
 <body>
 	<p>Hi, <@nick@>, welcome to your dbot page! Please choose from the below.</p>
 	<ul>
-		<li><a href="/t/view" class="linkhaseditor">Open function editor</a></li>
-		<li><a href="/t/create" class="linkhaseditor">Create a function</a></li>
+		<li><a href="@@rootVUrl@@t/view" class="linkhaseditor">Open function editor</a></li>
+		<li><a href="@@rootVUrl@@t/create" class="linkhaseditor">Create a function</a></li>
 	</ul>
 	<script type="text/javascript">
 		function editor3enable(byes)

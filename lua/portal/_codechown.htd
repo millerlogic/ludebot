@@ -32,7 +32,7 @@ function codechown(user, vuri, qs, acct)
 							return "Giving ownership to " .. chnick .. " (" .. chacctID .. ")" ..
 							[[
 								<br><br>
-								<a href="/t/view?module=]] .. module .. [[&name=]] .. name .. [[">Done</a>
+								<a href="]] .. rootVUrl .. [[t/view?module=]] .. module .. [[&name=]] .. name .. [[">Done</a>
 							]]
 						end
           else
@@ -74,7 +74,7 @@ end
   </style>
 </head>
 <body>
-	<h4>dbot functions <a href="/t/" style="font-weight: normal; font-size: 10pt">(home)</a></h4>
+	<h4>dbot functions <a href="@@rootVUrl@@t/" style="font-weight: normal; font-size: 10pt">(home)</a></h4>
 <@codechown(...)@>
 </body>
 </html>

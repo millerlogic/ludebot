@@ -14,6 +14,8 @@ if not dbotPortal then
 	dbotPortalUserHost = "127.0.0.2"
 	dbotPortalPort = 8000 -- Note: httpGet can request from the same host.
 	dbotPortalRoot = "./lua/portal"
+	dbotPortalPrefixVUrl = "/" -- Must end in slash.
+	dbotPortalPrefixUserVUrl = "/" -- Must end in slash.
 	do
 		-- Load up local info if available.
 		local a, b = loadfile("dbotportal_info.lua")
@@ -34,8 +36,9 @@ if not dbotPortal then
 	-- Note: currently no timeout for slow user clients.
 end
 
-dbotPortalURL = dbotPortalForceURL or "http://" .. dbotPortalHost .. ":" .. dbotPortalPort .. "/"
-
+dbotPortalURL = ( dbotPortalForceURL
+	or ("http://" .. dbotPortalHost .. ":" .. dbotPortalPort) )
+		.. dbotPortalPrefixVUrl
 
 function dbotPortal:onHttpUserConnected(user)
 	print("dbotPortal connection from " .. user.userAddress)
@@ -272,11 +275,18 @@ end
 
 
 function dbotPortal_processHttpRequest(user, method, vuri, headers)
+	local realHost = headers["Host"]
+	if dbotPortalRewrite then
+		local newvuri = dbotPortalRewrite(user, method, vuri, headers)
+		if newvuri then
+			vuri = newvuri
+		end
+	end
 	local x, qs = vuri:match("^([^%?]*)(%?.*)")
 	if qs then
 		vuri = x
 	end
-	local newticket = vuri == "/t/" and qs and qs:sub(1, 8) == "?ticket="
+	local newticket = vuri == (dbotPortalPrefixVUrl.."t/") and qs and qs:sub(1, 8) == "?ticket="
 	local acct
 	if not newticket then
 		acct = accountFromHttpCookie(headers["Cookie"])
@@ -316,13 +326,14 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			nick = acct:nick()
 			user.responseHeaders["Set-Cookie"] = "ticket=" .. urlEncode(urltik)
 				.. "; expires=" .. os.date("!%a, %d %b %Y %H:%M:%S %Z", os.time() + 60 * 60 * 24 * 7)
-				.. "; domain=" .. dbotPortalHost .. "; path=/t/"
+				.. "; domain=" .. (realHost or dbotPortalHost)
+				.. "; path=" .. dbotPortalPrefixVUrl .. "t/; HttpOnly"
 			-- Not doing this redirect becuase webkit doesn't keep the cookie.
 			-- user.responseStatusCode = "307"
-			-- user.responseHeaders["Location"] = "/"
+			-- user.responseHeaders["Location"] = "t"
 			user.responseHeaders["Content-Type"] = "text/html; charset=utf-8"
 			user:send([[<html><head>
-<meta http-equiv="refresh" content="0; url=/t/">
+<meta http-equiv="refresh" content="0; url=]] .. dbotPortalPrefixVUrl .. [[t/">
 </head>
 <body>
 	<a href=\"/\">Logged in...</a>
@@ -333,32 +344,35 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			user.responseStatusCode = "401"
 			user:send("Sorry, your ticket is not known")
 		end
-	elseif vuri == "/t/botstock" then
+	elseif vuri == dbotPortalPrefixVUrl.."t/botstock" then
 		local nick = "Guest"
 		if acct then
 			nick = acct:nick()
 		end
-		processHtdFile(dbotPortalRoot .. "/_botstock.htd", user, vuri, qs, { nick = nick }, acct)
-	elseif vuri == "/t/events" then
+		processHtdFile(dbotPortalRoot .. "/_botstock.htd", user, vuri, qs,
+			{ nick = nick, rootVUrl = dbotPortalPrefixVUrl }, acct)
+	elseif vuri == dbotPortalPrefixVUrl.."t/events" then
 		local nick = "Guest"
 		if acct then
 			nick = acct:nick()
 		end
-		processHtdFile(dbotPortalRoot .. "/_events.htd", user, vuri, qs, { nick = nick }, acct)
-	elseif vuri:find("^/u/") then
+		processHtdFile(dbotPortalRoot .. "/_events.htd", user, vuri, qs,
+			{ nick = nick, rootVUrl = dbotPortalPrefixVUrl }, acct)
+	elseif vuri:find("^" .. dbotPortalPrefixUserVUrl .. "u/") then
 		local nick = "Guest"
 		if acct then
 			nick = acct:nick()
 		end
-		local uname, uvurl = vuri:match("^/u/([^/%.]+)(/.*)")
+		local uname, uvurl = vuri:match("^" .. dbotPortalPrefixUserVUrl .. "u/([^/%.]+)(/.*)")
 		if uname and uvurl then
 			if headers["Host"] ~= dbotPortalUserHost
           and headers["Host"] ~= dbotPortalUserHost .. ":" .. dbotPortalPort then
 				-- user.responseStatusCode = "417"
 				-- user:send("Invalid site")
 				user.responseStatusCode = "307"
-				user.responseHeaders["Location"] = "http://" .. dbotPortalUserHost .. ":" ..
-					dbotPortalPort .. vuri .. (qs or '')
+				user.responseHeaders["Location"] = ( dbotPortalForceUserURL or
+					"http://" .. dbotPortalUserHost .. ":" .. dbotPortalPort )
+						.. vuri .. (qs or '')
 				return
 			end
 			uname = urlDecode(uname)
@@ -486,16 +500,17 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 				end
 			end
 		else
-			processHtdFile(dbotPortalRoot .. "/_u.htd", user, vuri, qs, { nick = nick }, acct)
+			processHtdFile(dbotPortalRoot .. "/_u.htd", user, vuri, qs,
+				{ nick = nick, rootVUrl = dbotPortalPrefixVUrl }, acct)
 		end
 	elseif vuri == "/create" or vuri == "/edit" or vuri == "/view"
 			or vuri == "/botstock" or vuri == "/alias" or vuri == "/" then
 		user.responseStatusCode = "307"
-		user.responseHeaders["Location"] = "/t" .. vuri .. (qs or '')
+		user.responseHeaders["Location"] = "." .. vuri .. (qs or '')
 		return
-	elseif vuri == "/t/create" or vuri == "/t/edit" or vuri == "/t/view"
-      or vuri == "/t/alias" then
-		if vuri ~= "/t/view" then
+	elseif vuri == dbotPortalPrefixVUrl.."t/create" or vuri == dbotPortalPrefixVUrl.."t/edit" 
+			or vuri == dbotPortalPrefixVUrl.."t/view" or vuri == dbotPortalPrefixVUrl.."t/alias" then
+		if vuri ~= dbotPortalPrefixVUrl.."t/view" then
 			if not acct then
 				user.responseStatusCode = "401"
 				return
@@ -523,8 +538,9 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			f:close()
 		end
 		--]]
-		processHtdFile(codeFile, user, vuri, qs, { nick = acct:nick() }, acct)
-	elseif vuri == "/t/" then
+		processHtdFile(codeFile, user, vuri, qs,
+			{ nick = acct:nick(), rootVUrl = dbotPortalPrefixVUrl }, acct)
+	elseif vuri == dbotPortalPrefixVUrl.."t/" then
 		if acct then
 			user.responseHeaders["Content-Type"] = "text/html; charset=utf-8"
 			-- user:send("<div>Success, " .. nick .. "!</div>")
@@ -544,7 +560,8 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 				f:close()
 			end
 			--]]
-			processHtdFile(loggedinFile, user, vuri, qs, { nick = acct:nick() }, acct)
+			processHtdFile(loggedinFile, user, vuri, qs,
+				{ nick = acct:nick(), rootVUrl = dbotPortalPrefixVUrl }, acct)
 		else
 			user.responseHeaders["Content-Type"] = "text/html; charset=utf-8"
 			user:send([[<html><head><title>dbot</title></head><body>]])
@@ -566,14 +583,14 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			]])
 			user:send("</body></html>")
 		end
-	elseif vuri == "/t/codechown" then
+	elseif vuri == dbotPortalPrefixVUrl.."t/codechown" then
 		local nick = "Guest"
 		if acct then
 			nick = acct:nick()
 		end
 		processHtdFile(dbotPortalRoot .. "/_codechown.htd", user, vuri, qs,
-			{ nick = nick, method = method, headers = headers }, acct)
-	elseif vuri == "/t/code-post" then
+			{ nick = nick, rootVUrl = dbotPortalPrefixVUrl, method = method, headers = headers }, acct)
+	elseif vuri == dbotPortalPrefixVUrl.."t/code-post" then
 		if headers["Host"] ~= dbotPortalHost
         and headers["Host"] ~= dbotPortalHost .. ":" .. dbotPortalPort then
 			user.responseStatusCode = "417"
@@ -603,15 +620,15 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 						user:send("Error: Too much code, please break it up into smaller functions")
 					else
 						local actioned = "saved"
-						local editurl = "/t/edit?name=" .. funcname .. "&module=" .. modname
+						local editurl = dbotPortalPrefixVUrl.."t/edit?name=" .. funcname .. "&module=" .. modname
 						if code:len() == 0 then
 							code = nil
 							actioned = "deleted"
-							editurl = "/"
+							editurl = dbotPortalPrefixVUrl .. "t/"
 						end
 						-- Need to save first, or sandbox won't be able to get account info.
 						-- (only applies when doing recursion)
-						local isNew = urlDecode(getval(post, "save") or "") == "/t/create"
+						local isNew = urlDecode(getval(post, "save") or "") == (dbotPortalPrefixVUrl.."t/create")
 						local ok, err = accountSaveUdf(acct, modname, funcname, code, isNew)
 						if not ok then
 							user:send("Error: " .. (err or "error"))
@@ -707,7 +724,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 							user:send([[</pre></div>]])
 						end
 						user:send([[
-	<p><a href="]] .. editurl .. [[">Done</a>, <a href="/">home</a></p>
+	<p><a href="]] .. editurl .. [[">Done</a>, <a href=".">home</a></p>
 </body></html>
 ]])
 					end
@@ -719,7 +736,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 	else
 		-- user.responseStatusCode = "404"
 		-- user:send("File Not Found")
-		local filename = vuri:match("^/t(/[/%w%.%-_]*)$")
+		local filename = vuri:match("^" .. dbotPortalPrefixVUrl .. "t(/[/%w%.%-_]*)$")
 		-- Make sure not 2 slashes and not a dot after a slash.
 		if filename and not filename:find("/[/%.]") then
 			local ext = filename:match("%.(.*)$")

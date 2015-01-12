@@ -60,7 +60,7 @@ function codeformInfofieldNeedInputIfDisabled(user, vuri, qs, acct)
 end
 
 function codeformInfofieldHtmlAfterName(user, vuri, qs, acct)
-	if vuri ~= "/t/create" and vuri ~= "/t/alias" then
+	if vuri ~= rootVUrl.."t/create" and vuri ~= rootVUrl.."t/alias" then
 		local cname = codeformInfoCodeName(user, vuri, qs, acct)
 		if cname:len() > 0 then
 			return ""
@@ -76,14 +76,14 @@ function codeformInfofieldHtmlAfterName(user, vuri, qs, acct)
 end
 
 function codeformCodeboxIfDisabled(user, vuri, qs, acct)
-	if vuri == "/t/view" then
+	if vuri == rootVUrl.."t/view" then
 		return "style=\"background-color: #EEEEEE; color: black;\""
 	end
 	return ""
 end
 
 function codeformInfoAuthorName(user, vuri, qs, acct)
-	if vuri == "/t/create" or vuri == "/t/alias" then
+	if vuri == rootVUrl.."t/create" or vuri == rootVUrl.."/alias" then
 		return acct:nick()
 	else
 		local cname = codeformInfoCodeName(user, vuri, qs, acct)
@@ -110,7 +110,7 @@ function checkIfSecureTR(user, vuri, qs, qacct)
 		local finfo = getUdfInfo(getval(qs, "module"), getval(qs, "name"))
 		if finfo then
 			if finfo.secure then
-				if vuri == "/t/edit" then
+				if vuri == rootVUrl.."t/edit" then
 					return "<tr><td colspan='3'><strong>WARNING: </strong>editing this function will no longer allow it to be called from a trusted context without re-approval!</td></tr>"
 				else
 					return "<tr><td colspan='3'>This function can be called from a trusted context</td></tr>"
@@ -134,7 +134,7 @@ end
 local gseealsomod, gseealsofunc
 
 function codeformTextareaCode(user, vuri, qs, acct)
-	if vuri == "/t/alias" then
+	if vuri == rootVUrl.."t/alias" then
 		return "return " .. urlDecode(getval(qs, "module") or "etc") .. "."
 			.. urlDecode(getval(qs, "of") or "NAME_HERE") .. "(...)\n"
 	else
@@ -164,7 +164,7 @@ function codeformTextareaCode(user, vuri, qs, acct)
 							end
 						end
 						local b4 = ""
-						if vuri ~= "/t/view" then
+						if vuri ~= rootVUrl.."t/view" then
 							if not accountCanSaveUdf(acct, modname, funcname) and not getval(qs, "fork") then
 								b4 = "\n-- You do not have permission to edit this function\n\n"
 							end
@@ -173,19 +173,19 @@ function codeformTextareaCode(user, vuri, qs, acct)
 					end
 				end
 			end
-			if vuri ~= "/t/create" then
+			if vuri ~= rootVUrl.."t/create" then
 				return "-- This function does not exist\n"
 			end
 		end
 	end
-	if vuri == "/t/create" then
+	if vuri == rootVUrl.."t/create" then
 		return "API \"1.1\"\n\nreturn \"hello, world\"\n"
 	end
 	return ""
 end
 
 function codeformEditInfo(user, vuri, qs, acct)
-	if vuri == "/t/view" or vuri == "/t/edit" then
+	if vuri == rootVUrl.."t/view" or vuri == rootVUrl.."t/edit" then
 		local cname = qs and codeformInfoCodeName(user, vuri, qs, acct) or ""
 		if cname:len() > 0 then
 			if qs then
@@ -193,14 +193,14 @@ function codeformEditInfo(user, vuri, qs, acct)
 				local finfo = getUdfInfo(urlDecode(getval(qs, "module")), urlDecode(getval(qs, "name")))
 				if finfo then
 					if finfo.acctID == acct.id or finfo.chacctID == acct.id then
-						if vuri == "/t/view" then
-							return "<a style=\"font-size: 10pt;\" href=\"/t/edit" .. qs .. "\">(edit)</a>"
+						if vuri == rootVUrl.."t/view" then
+							return "<a style=\"font-size: 10pt;\" href=\"" .. rootVUrl .. "t/edit" .. qs .. "\">(edit)</a>"
 						else
 							return "<span style=\"font-size: 10pt;\">(editing)</span>"
 						end
 					elseif acct and acct.id then
-						if vuri == "/t/view" then
-							return "<a style=\"font-size: 10pt;\" href=\"/t/create" .. qs .. "&fork=true\">(fork)</a>"
+						if vuri == rootVUrl.."t/view" then
+							return "<a style=\"font-size: 10pt;\" href=\"" .. rootVUrl .. "t/create" .. qs .. "&fork=true\">(fork)</a>"
 						end
 					end
 				end
@@ -214,10 +214,10 @@ function codeformEditInfo(user, vuri, qs, acct)
 end
 
 function codeformAttribs(user, vuri, qs, acct)
-	if vuri ~= "/t/view" then
+	if vuri ~= rootVUrl.."t/view" then
 		local cname = codeformInfoCodeName(user, vuri, qs, acct)
-		if vuri == "/t/create" or vuri == "/t/alias" or cname:len() > 0 then
-			return [[method="post" action="/t/code-post"]]
+		if vuri == rootVUrl.."t/create" or vuri == rootVUrl.."t/alias" or cname:len() > 0 then
+			return [[method="post" action="]] .. rootVUrl .. [[t/code-post"]]
 		end
 	end
 	return [[method="get" action="]] .. vuri .. [["]]
@@ -237,7 +237,7 @@ function codeExtraHead(user, vuri, qs, acct)
 	local s = ""
 	-- editornum = getval(qs or "", "editor") or "1"
 	editornum = getval(qs or "", "editor") or "3"
-	local readonly = vuri == "/t/view"
+	local readonly = vuri == rootVUrl.."t/view"
 	if editornum == "3" then
 		local js_is_readonly = "false"
 		if readonly then
@@ -299,7 +299,7 @@ editAreaLoader.init({
 ]]
 		end
 	end
-	if vuri == "/t/create" or vuri == "/t/alias" or vuri == "/t/edit" then
+	if vuri == rootVUrl.."t/create" or vuri == rootVUrl.."t/alias" or vuri == rootVUrl.."t/edit" then
 
 	else
 
@@ -308,9 +308,9 @@ editAreaLoader.init({
 end
 
 function codeformSaveButtonHtml(user, vuri, qs, acct)
-	if vuri ~= "/t/view" then
+	if vuri ~= rootVUrl.."t/view" then
 		local cname = codeformInfoCodeName(user, vuri, qs, acct)
-		if cname:len() > 0 or vuri == "/t/create" or vuri == "/t/alias" then
+		if cname:len() > 0 or vuri == rootVUrl.."t/create" or vuri == rootVUrl.."t/alias" then
 			local btnvalue = "Save"
 			if qs and getval(qs, "fork") then
 				btnvalue = "Fork"
@@ -337,13 +337,13 @@ function funclistHtml(user, vuri, qs, acct)
 	var qsa = $(sa);
 	if(sa && qsa.length)
 	{
-		qsa.html('See also: <a href="/t/view?module=]] .. gseealsomod .. [[&name=]] .. gseealsofunc
+		qsa.html('See also: <a href="]] .. rootVUrl .. [[t/view?module=]] .. gseealsomod .. [[&name=]] .. gseealsofunc
 			.. [[">]] .. gseealsomod .. '.' .. gseealsofunc .. [[</a>')
 	}
 --></script>
 		]]
 	end
-	if vuri == "/t/alias" then
+	if vuri == rootVUrl.."t/alias" then
 	  s = s .. [[
 		<script>
 		var sa = document.getElementById('seealso');
@@ -450,7 +450,7 @@ function funclistHtml(user, vuri, qs, acct)
 				for i = 1, flim do
 					local uact = "view"
 					-- if m[t[i]].acctID == acct.id then uact = "edit" end
-					s = s .. "<div class='ent icon function'><a href=\"/" .. uact
+					s = s .. "<div class='ent icon function'><a href=\"" .. rootVUrl .. "t/" .. uact
 						.. "?module=" .. mi.name .. "&name=" .. t[i] .. "\">"
 						.. t[i] .. "</a>()</div>\n"
 				end
@@ -499,7 +499,7 @@ end
 	<@codeExtraHead(...)@>
 </head>
 <body>
-	<h4>dbot functions <a href="/t/" style="font-weight: normal; font-size: 10pt">(home)</a></h4>
+	<h4>dbot functions <a href="@@rootVUrl@@t/" style="font-weight: normal; font-size: 10pt">(home)</a></h4>
 	<form @@codeformAttribs(...)@@ id="codeform">
 	<input type="hidden" name="pw" value="@@codeformPw(...)@@">
 	<!-- <input type="hidden" id="st2" name="t" value=""> -->

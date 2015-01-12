@@ -65,7 +65,7 @@ end
 		.stocklink { text-decoration: none; }
 		.stocklink:hover { text-decoration: underline; }
 	</style>
-	<script src="/t/jquery-1.7.1.min.js" type="text/javascript"></script>
+	<script src="@@rootVUrl@@t/jquery-1.7.1.min.js" type="text/javascript"></script>
 </head>
 <body>
 
