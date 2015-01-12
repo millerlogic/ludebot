@@ -946,17 +946,8 @@ botExpect("PM#", function(state, client, sender, target, msg)
 			else
 				-- dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPrints)
 				dbotRunSandboxHooked(client, sender, target,
-					[[
-						print(
-							[========================[]] .. word .. [[]========================],
-							"==",
-							dbotscript(
-								[=======================[]] .. text .. [[]=======================],
-								[=======================[]] .. args .. [[]=======================],
-								_getValue
-								)
-							)
-					]], function(env)
+					("print(%q, \"==\", dbotscript(%q, %q, _getValue))"):format(word, text, args),
+					function(env)
 							env._getValue = function(name)
 								if name:lower() == "notset" then
 									if env._notset then
