@@ -19,7 +19,7 @@ if not dbotPortal then
 	do
 		-- Load up local info if available.
 		-- Reload: \reload dbotportal_info
-		include("dbotportal_info.lua")
+		include("dbotportal_info")
 	end
 
 	dbotPortal = HttpServer(manager)
