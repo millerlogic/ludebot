@@ -20,7 +20,8 @@ RUN wget --no-check-certificate -O/luasandy/lua/sandbox.lua https://raw.githubus
 ENV IRCCMD_PATH /irccmd/irccmd
 ENV LUDEBOT_LUA_PATH /ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;
 
-ENV LUDEBOT_RUN next # default
+# default
+ENV LUDEBOT_RUN next
 
 # Add the host dir.
 ADD ./ /ludebot
