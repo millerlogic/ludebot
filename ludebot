@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 -- Copyright (C) 2014 Anders Bergh, Christopher E. Miller
--- License: GPLv3, see LICENSE file.
+-- License: GPLv2, see LICENSE file.
 
 -- Usage: ./ludebot [config file, default: ludebot.conf] [-- [extra args]]
 

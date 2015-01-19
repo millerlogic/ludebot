@@ -1,5 +1,5 @@
 -- Copyright 2012-2014 Christopher E. Miller
--- License: GPLv3, see LICENSE file.
+-- License: GPLv2, see LICENSE file.
 
 -- Install wordnet or http://wordnetcode.princeton.edu/3.0/WNdb-3.0.tar.gz
 wordnetIndexDir = "/usr/share/wordnet"

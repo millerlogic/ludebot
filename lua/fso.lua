@@ -1,5 +1,5 @@
 -- Copyright 2012-2014 Christopher E. Miller
--- License: GPLv3, see LICENSE file.
+-- License: GPLv2, see LICENSE file.
 
 require("utils")
 

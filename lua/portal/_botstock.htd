@@ -2,7 +2,7 @@
 <html><head>
 <lua><!--
 -- Copyright 2012-2014 Christopher E. Miller
--- License: GPLv3, see LICENSE file.
+-- License: GPLv2, see LICENSE file.
 
 local q
 local TimeBase = 1332000000 -- 2012-03-17 12:00:00
