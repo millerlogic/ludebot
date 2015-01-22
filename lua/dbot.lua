@@ -840,8 +840,16 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 	if ctcp then
 		if ctcp:upper() == "ACTION" then
 			logmsg = nick .. " " .. msg
-			return -- Don't bother keeping track of other CTCP here.
+		elseif ctcp:upper() == "MSG" then
+			local acct = getUserAccount(prefix, true)
+			if acct and acct:demand("msg") then
+				local target, message = ctcpText:match("([^ ]+) (.+)")
+				if target and message then
+					client:sendMsg(target, message)
+				end
+			end
 		end
+		return -- Don't bother keeping track of other CTCP here.
 	end
 	
 	if chan then
