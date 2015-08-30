@@ -525,3 +525,43 @@ function infomainGet(word)
 	end
 end
 
+
+function getDestConf(dest, key)
+	local conf = dbotData.conf and dbotData.conf[dest:lower()]
+	return conf and conf[key:lower()]
+end
+
+-- Note: doesn't ensure it's valid, use isValidDestConf.
+-- Don't allow setting from user scripts as it would allow saving state and cheating the cache.
+function setDestConf(dest, key, value)
+	local allconf = dbotData.conf
+	if not dbotData.conf then
+		allconf = {}
+		dbotData.conf = conf
+	end
+	local ldest = dest:lower()
+	local conf = allconf[ldest]
+	if not conf then
+		conf = {}
+		allconf[ldest] = conf
+	end
+	allconf[key:lower()] = value
+	dbotDirty = true
+end
+
+-- The caller should make sure dest is an actual dest, I don't check the length.
+function isValidDestConf(dest, key, value)
+	if not type(dest) == "string" then
+		return false, "Invalid dest"
+	end
+	if not type(key) == "string" or #key > 15 then
+		return false, "Invalid key"
+	end
+	if value ~= nil then
+		if not type(value) == "string" or #value > 15 then
+			return false, "Invalid value"
+		end
+	end
+	return true
+end
+

@@ -2103,6 +2103,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		chan = "#clowngames"
 		dest = chan
 	end
+	hlp.getChanConf = "Get conf value for the specified key on the current channel"
+	env.getChanConf = function(key)
+		if not chan then
+			return false, "Not a channel"
+		end
+		return getDestConf(chan, key)
+	end
 	hlp._guest = "Change nick and account to the guest user. Does not change the security context, this remains the original owner. Use guestloadstring(code) to change the security context for code."
 	env._guest = function()
 		local guestacct = assert(getGuestAccount()) -- demand

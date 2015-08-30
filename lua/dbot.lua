@@ -642,6 +642,35 @@ botExpectChannelBotCommand(cmdchar .. "rfc", function(state, client, sender, tar
 end)
 
 
+botExpectChannelBotCommand(cmdchar .. "chanconf", function(state, client, sender, target, cmd, args)
+	local nick = nickFromSource(sender)
+	local chan = client:channelNameFromTarget(target)
+	local key, value = args:match("([^ =]+)[ =]? (.*)")
+	if not key or #key == 0 then
+		client:sendMsg(chan, nick .. " * Which conf?")
+		return
+	end
+	if #value == 0 then
+		value = getDestConf(chan, key)
+		if not value then
+			client:sendMsg(chan, nick .. " * no value")
+		else
+			client:sendMsg(chan, key:lower() .. "=" .. value)
+		end
+	else
+		local acct = getUserAccount(prefix)
+		if not acct or not acct:demand("god") then
+			client:sendMsg(chan, nick .. " * denied")
+		elseif not isValidDestConf(dest, key, value) then
+			client:sendMsg(chan, nick .. " * problem")
+		else
+			setDestConf(chan, key, value)
+			client:sendMsg(chan, nick .. " * ok")
+		end
+	end
+end)
+
+
 function cmd_dsource(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
