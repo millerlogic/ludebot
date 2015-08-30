@@ -849,7 +849,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 		do
 			-- on_activity
 			local so = findSeen(client:network(), chan, nick)
-			if not so or so.t <= os.time() - 300 then
+			if not so or so.t <= os.time() - 60 then
 				dbotRunSandboxHooked(client, nick, chan, "etc.on_activity();", function(env)
 					env.Event = { name = "activity" }
 				end, nil, true)

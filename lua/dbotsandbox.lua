@@ -1365,12 +1365,17 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		for uln in printbuf:gmatch("([^\r\n]+)") do
 			if nprintlines < maxprintlines then
 				nprintlines = nprintlines + 1
+				local suffix = ""
+				local wantsuffix = chan and getDestConf(chan, "print_suffix")
+				if wantsuffix == "true" then
+					suffix = " (" .. (nick or "?") .. ")"
+				end
 				local act = uln:match("^\001[Aa][Cc][Tt][Ii][Oo][Nn] ([^\001]+)")
 				if act then
-					local x = outputPrintConvert(src, conv, safeString(act))
+					local x = outputPrintConvert(src, conv, safeString(act .. suffix))
 					client:sendMsg(dest, "\001ACTION " .. x .. "\001", "dbotSandbox")
 				else
-					local x = outputPrintConvert(src, conv, safeString(uln))
+					local x = outputPrintConvert(src, conv, safeString(uln .. suffix))
 					client:sendMsg(dest, x, "dbotSandbox")
 				end
 			end
@@ -2430,7 +2435,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.Output.printTypeConvert = 'auto'
 	env.Output.mode = 'irc'
 	env.Output.tty = true
-	hlp.Output = "A table containing information about input"
+	hlp.Input = "A table containing information about input"
 	env.Input = env.Input or {}
 	--[[
 	if finishEnvFunc then -- Moved into real callback below.
