@@ -958,39 +958,6 @@ freeMoneyTimer = freeMoneyTimer or Timer(60 * 3, function()
 							giveUserCashDealer(nick, 0.15)
 						elseif cash < -200 then
 							giveUserCashDealer(nick, 0.10)
-						--elseif cash > 200 then
-						--	giveUserCashDealer(nick, 0.025)
-						--[[
-						-- DONT TAKE THIS MUCH...
-						-- IT HURTS IDLERS!
-						-- ONLY DO IT TO EVERYONE OR NO ONE!
-						elseif cash > 200000 then
-							giveUserCashDealer(nick, -3)
-						elseif cash > 160000 then
-							giveUserCashDealer(nick, -2.5)
-						elseif cash > 140000 then
-							giveUserCashDealer(nick, -2.0)
-						elseif cash > 120000 then
-							giveUserCashDealer(nick, -1.5)
-						elseif cash > 100000 then
-							giveUserCashDealer(nick, -1.0)
-						elseif cash > 90000 then
-							giveUserCashDealer(nick, -0.75)
-						elseif cash > 80000 then
-							giveUserCashDealer(nick, -0.55)
-						elseif cash > 70000 then
-							giveUserCashDealer(nick, -0.45)
-						--]]
-						elseif cash > 60000 then
-							giveUserCashDealer(nick, -0.35)
-						elseif cash > 50000 then
-							giveUserCashDealer(nick, -0.30)
-						elseif cash > 40000 then
-							giveUserCashDealer(nick, -0.20)
-						elseif cash > 30000 then
-							giveUserCashDealer(nick, -0.10)
-						else
-							giveUserCashDealer(nick, 0.05)
 						end
 					end
 				end
@@ -1003,14 +970,19 @@ freeMoneyTimer = freeMoneyTimer or Timer(60 * 3, function()
 	for who, cash in pairs(alData["bank"]) do
 		if who:sub(1, 1) ~= '$' then
 			local upper = 25000
-			if cash > upper then
-				local div = 1000000
-				local over = cash - upper
-				local tax = over / div
-				-- This tax is applied every 3 mins (this timer),
-				-- which means it's taxed 480 times a day.
-				giveUserCashDealer(who, -tax)
-				print("$", "Taxed " .. who .. " $" .. tax, "(daily=~" .. (tax * 480) .. ")")
+			local tax = 0
+			local remain = cash - upper
+			local iter = 0
+			while remain > 0 do
+				iter = iter + 1
+				tax = tax + math.min(remain, upper) / (1000000 / (1 + (iter - 1) / 20))
+				remain = remain - upper
+			end
+			-- This tax is applied every 3 mins (this timer),
+			-- which means it's taxed 480 times a day.
+			if tax ~= 0 then
+				--print("giveUserCashDealer", who, -tax)
+				print("$" .. cash, "Taxed " .. who .. " $" .. tax, "(daily=~" .. (tax * 480) .. ")")
 			end
 		end
 	end
