@@ -154,6 +154,8 @@ end
 
 ---
 function TelegramBot:sendMessage(chat_id, text)
+  assert(type(text) == "string", "Invalid message")
+  text = text:sub(1, 4096) -- Telegram message limit is "4096 UTF8 characters"
   local url = self:_getURL("sendMessage")
     .. "?chat_id=" .. assert(tonumber(chat_id), "bad chat_id")
     .. "&text=" .. urlEncode(text)

@@ -84,11 +84,14 @@ if TelegramBot and not tbot then
 						end
 						env.Output.mode = 'plain'
 						env.Event = { name = "telegram-update" }
+						local maxSends = 4
 						env.Telegram = {
 							update = response;
 							sendMessage = function(chat_id, text)
-								-- Warning: this is unrestricted, it's up to on_telegram_update to be careful!
-								tbot:sendMessage(chat_id, text)
+								if maxSends > 0 then
+									maxSends = maxSends - 1
+									tbot:sendMessage(chat_id, text)
+								end
 							end;
 						}
 					end, 10000, true)
