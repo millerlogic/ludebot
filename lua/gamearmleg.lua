@@ -194,120 +194,7 @@ stockSectors = {
 }
 
 
-function doAutoStockValue()
-	--[===[
-	print("---")
-	stockrnum = stockrnum + (internal.frandom(3) - 1)
-	if stockrnum < -2 then
-		stockrnum = -2
-	elseif stockrnum > 2 then
-		stockrnum = 2
-	end
-	-- stockrnum = stockrnum - internal.frandom(3)
-	print(" stockrnum = " .. stockrnum)
-	for symbol, stock in pairs(alData.stockdata) do
-		if 2 ~= internal.frandom(10) then -- 10% chance of no change.
-			local newB = stock.B
-			local rn = stockrnum + (internal.frandom(3) - 1)
-			-- if internal.frandom(100) < 20 then
-			-- 	rn = rn + (internal.frandom(5) - 2)
-			-- end
-			newB = newB + rn
-			newB = newB - internal.frandom(4)
-			if newB < 5 then
-				--if internal.frandom(100) < 30 then
-				--	newB = 5
-				--end
-				if newB < 1 then
-					newB = 1
-				end
-			elseif newB > 40 then
-				if internal.frandom(100) < 50 then
-					newB = 40
-				end
-				if newB > 50 then
-					newB = 50
-				end
-			end
-			if newB > 20 then
-				newB = newB - 1 - internal.frandom(4)
-			end
-			--[[
-			print(" - " .. symbol .. " B changing from " .. stock.B .. " to " .. newB
-				.. " ($" .. calcNextSharePrice(stock.vcap, stock.shareCount, stock.B)
-				.. " to $" .. calcNextSharePrice(stock.vcap, stock.shareCount, newB) .. ")"
-				)
-			--]]
-			stock.B = newB
-			alDirty = true
-			stocksDirty = true
-		end
-	end
-	--]===]
-end
-
-
 stockrnum = stockrnum or (internal.frandom(7) - 3)
-
-function doAutoBotTrades1()
-	print("---")
-	do
-		local inv={
-			--"ChesterInvestor","BuyAllStocks","StockMarketeer","NoFundsTrader","StockTraderJoe",
-			-- "TraderTraitor","AllYourStocks",
-			"BadDayTrader","ShortStock","SellsHigh",
-			};
-		local bb = internal.frandom(3) - 1
-		if 1 == internal.frandom(10) then
-			-- Every once in a while, buy like crazy:
-			bb = 2
-		end
-		print("bb = " .. bb)
-		for i, invnick in ipairs(inv) do
-			local cash = getUserCash(invnick)
-			local bbb = bb
-			--[[
-			if cash < 0 then
-				-- Prefer to sell if negative cash flow... ???
-				if bbb == 1 and 1 == internal.frandom(4) then
-					bbb = 0
-				end
-			end
-			--]]
-			for sym, stock in pairs(alData.stockdata) do
-				local nn = getUserStockCount(invnick, sym)
-				local nnT, _, nnTcount = getUserStockCount(invnick) -- All for this user.
-				local nnAll = getTotalStockCount(sym) -- All users.
-				-- if 1 == internal.frandom(2) then
-					bbb = bbb + internal.frandom(3) - 1
-					if nnT > (nnTcount - internal.frandom(2)) * 10 then
-						-- Always sell if I have more than syms*x in any shares.
-						bbb = -1
-					end
-					if bbb >= 1 then
-						if nn >= 5 and nn >= nnAll / 11 then
-							-- Don't own too many of total shares.
-							print(invnick .. " owns too many " .. sym)
-						else
-							local howmany = math.random(1, 2)
-							directBuyShare(invnick, sym, howmany, 'auto') -- Bypasses event log.
-							if log_event then
-								log_event("stock_trade_auto", invnick .. " buy " .. howmany .. " " .. sym)
-							end
-						end
-					elseif bbb <= -1 then
-						local howmany = directSellShare(invnick, sym, math.random(1, 5), 'auto')
-						if howmany  then
-							if log_event then
-								log_event("stock_trade_auto", invnick .. " sell " .. howmany .. " " .. sym)
-							end
-						end
-					end
-				-- end
-			end
-		end
-	end
-end
 
 
 if not alData.autobot2 then
@@ -456,12 +343,6 @@ end
 
 
 function stockTimerFunc()
-	-- On average once every 15 mins...
-	if 1 == internal.frandom(15) then
-		doAutoStockValue()
-		doAutoBotTrades1()
-		print("---")
-	end
 	-- On average once every 22 mins...
 	if 1 == internal.frandom(22) then
 		doAutoBotTrades2()
