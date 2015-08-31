@@ -71,7 +71,13 @@ if TelegramBot and not tbot then
 		tbot = TelegramBot(tbotKey)
 		-- To-do: move this...
 		function tbot:onUpdate(response)
-			local client = UnitClient()
+			local Telegram
+			local function tbotPrint(...)
+				if Telegram and Telegram.onPrint then
+					Telegram.onPrint(...)
+				end
+			end
+			local client = UnitClient(tbotPrint)
 			dbotRunSandboxHooked(client,
 					"$telegram!telegram@telegram.", "<chan>", "etc.on_telegram_update()", function(env)
 						setUnitEnv(env, allowHttp)
@@ -85,7 +91,7 @@ if TelegramBot and not tbot then
 						env.Output.mode = 'plain'
 						env.Event = { name = "telegram-update" }
 						local maxSends = 4
-						env.Telegram = {
+						Telegram = {
 							update = response;
 							sendMessage = function(chat_id, text)
 								if maxSends > 0 then
@@ -93,7 +99,13 @@ if TelegramBot and not tbot then
 									tbot:sendMessage(chat_id, text)
 								end
 							end;
+							onPrint = function() end; -- stub
+							isUserTicket = function(user, tik)
+								assert(env.allCodeTrusted(), "Not trusted")
+								return false
+							end;
 						}
+						env.Telegram = Telegram
 					end, 10000, true)
 		end
 		tbot._debug = true
