@@ -36,4 +36,4 @@ RUN chown container:container /ludebot-state
 VOLUME ["/ludebot-state"]
 
 USER container
-CMD cd /ludebot-state && /ludebot/ludebot $LUDEBOT_CONF_PATH -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
+CMD cd /ludebot-state && /ludebot/ludebot "$LUDEBOT_CONF_PATH" -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
