@@ -16,6 +16,7 @@ if not dbotPortal then
 	dbotPortalRoot = "./lua/portal"
 	dbotPortalPrefixVUrl = "/" -- Must end in slash.
 	dbotPortalPrefixUserVUrl = "/" -- Must end in slash.
+	dbotPortalTrustForwardIP = "127.0.0.1" -- Trust an IP for X-Forwarded-For.
 	do
 		-- Load up local info if available.
 		-- Reload: \reload dbotportal_info
@@ -784,7 +785,7 @@ end
 
 function dbotPortal:onHttpRequest(user, method, vuri, headers)
 -- function dbotPortal:onHttpRequestCoro(user, method, vuri, headers)
-	if user.userAddress == "127.0.0.1" and headers["X-Forwarded-For"] then
+	if user.userAddress == dbotPortalTrustForwardIP and headers["X-Forwarded-For"] then
 		user.userAddress = headers["X-Forwarded-For"]
 	end
 	print("dbotPortal request from " .. user.userAddress, method, vuri)
