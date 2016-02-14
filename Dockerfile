@@ -22,6 +22,7 @@ ENV LUDEBOT_LUA_PATH /ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;
 
 # default
 ENV LUDEBOT_RUN next
+ENV LUDEBOT_CONF_PATH /ludebot-state/ludebot.conf
 
 # Add the host dir.
 ADD ./ /ludebot
@@ -35,4 +36,4 @@ RUN chown container:container /ludebot-state
 VOLUME ["/ludebot-state"]
 
 USER container
-CMD cd /ludebot-state && /ludebot/ludebot /ludebot-state/ludebot.conf -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
+CMD cd /ludebot-state && /ludebot/ludebot $LUDEBOT_CONF_PATH -- -flag=${LUDEBOT_RUN}run $IRCCMD_ARGS >>/ludebot-state/ludebot.out
