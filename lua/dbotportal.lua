@@ -512,10 +512,10 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		end
 	elseif vuri == "/create" or vuri == "/edit" or vuri == "/view"
 			or vuri == "/botstock" or vuri == "/alias" or vuri == "/" then
-		user.responseStatusCode = "307"
-		user.responseHeaders["Location"] = "." .. vuri .. (qs or '')
+		user.responseStatusCode = "301"
+		user.responseHeaders["Location"] = dbotPortalPrefixVUrl.."t" .. vuri .. (qs or '')
 		return
-	elseif vuri == dbotPortalPrefixVUrl.."t/create" or vuri == dbotPortalPrefixVUrl.."t/edit" 
+	elseif vuri == dbotPortalPrefixVUrl.."t/create" or vuri == dbotPortalPrefixVUrl.."t/edit"
 			or vuri == dbotPortalPrefixVUrl.."t/view" or vuri == dbotPortalPrefixVUrl.."t/alias" then
 		if vuri ~= dbotPortalPrefixVUrl.."t/view" then
 			if not acct then
@@ -816,4 +816,3 @@ end
 if irccmd then
 	exiting:add("dbotportal_exiting")
 end
-
