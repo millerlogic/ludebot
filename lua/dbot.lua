@@ -28,7 +28,7 @@ end
 dbotIncs = { -- TODO: move to config.
 	"gamearmleg",
 	-- "unicodedata",
-	-- "loremconn",
+	"chatbot_hook",
 	"prepare_wordlists",
 	"wordlists",
 	"lmnode",
@@ -43,24 +43,10 @@ for i, req in ipairs(dbotIncs) do
 end
 
 -- TODO: move to config.
-include "newlorem"
 include "tlssockets"
 
 
 cmdchar = "\\"
-
-
-if NewLorem and not chatbot then
-	chatbot = NewLorem("newlorem_luafndbot_aimain.dat", "luafndbot")
-	local loadf = chatbot:loadBotstore(true)
-	Timer(0.05, function(t)
-		local more, info = loadf()
-		print("loadBotstore", more, info)
-		if not more then
-			t:stop()
-		end
-	end):start()
-end
 
 
 if TelegramBot and not tbot then
@@ -213,17 +199,9 @@ function doReload(extra)
 	if extra then
 		assert(not extra:find("/", 1, true))
 		for x in extra:gmatch("[^,; ]+") do
-			if x == "@chatbot" then
-				chatbot = nil
-				collectgarbage()
-				local req = "newlorem"
-				package.loaded[req] = nil
-				require(req)
-			else
-				local req = x:match("(.*)%.lua$") or x
-				package.loaded[req] = nil
-				require(req)
-			end
+			local req = x:match("(.*)%.lua$") or x
+			package.loaded[req] = nil
+			require(req)
 		end
 	end
 	do
@@ -236,7 +214,6 @@ function doReload(extra)
 end
 
 -- Also: \reload file1.lua file2.lua ...
--- Also: \reload @chatbot
 botExpectChannelBotCommand(cmdchar .. "reload", function(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
@@ -1107,33 +1084,19 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 		if ch == ':' or ch == ',' or ch == ';' then
 			if msg:sub(1, botnamelen):lower() == botname:lower() then
 				local chatmsg = msg:sub(botnamelen + 3)
-				-- client:sendMsg(chan, "I'm disabled")
-				-- loremChat(target, whospeak, msg, callback)
 				local cbtarget = target
 				if isdefault ~= true then
 					cbtarget = botname:lower() .. "~" .. target
 				end
-				if botname == "Yara" then
-					--[[
-					mindfile = "yaramind.dat"
-					require("newlorem") --  /run package.loaded["newlorem"]=nil;
-					local msg = newloremResponse(nick, chatmsg, cbtarget, botname)
-					saveBotstore()
-					client:sendMsg(target, "<" .. botname .. "> " .. nick .. ch .. " " .. msg)
-					--]]
-				else
-					if loremValid and loremValid() then
-						loremChat(cbtarget, nick, chatmsg, function(target2, when, whospeak, msg)
+				do
+					if chatbotHookValid and chatbotHookValid() then
+						return false ~= chatbotHook(cbtarget, nick, chatmsg, function(target2, when, whospeak, msg)
 							if isdefault then
 								client:sendMsg(target, nick .. ch .. " " .. msg)
 							else
 								client:sendMsg(target, "<" .. botname .. "> " .. nick .. ch .. " " .. msg)
 							end
-						end)
-					elseif NewLorem and chatbot and botname:lower() == client:nick():lower() then
-						local msg = chatbot:response(nick, chatmsg, cbtarget, botname)
-						client:sendMsg(target, nick .. ch .. " " .. msg)
-						chatbot:saveBotstore()
+						end, botname)
 					else
 						dbot_run(state, client, sender, target, cmdchar .. "run",
 							[====[
@@ -1146,6 +1109,9 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 									end,
 									function()
 										return "sry I feel a little sick right now"
+									end,
+									function()
+										return "I'm disabled"
 									end,
 									function(x)
 					if etc and etc.er then
