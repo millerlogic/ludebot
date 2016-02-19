@@ -982,6 +982,7 @@ freeMoneyTimer = freeMoneyTimer or Timer(60 * 3, function()
 			-- which means it's taxed 480 times a day.
 			if tax ~= 0 then
 				--print("giveUserCashDealer", who, -tax)
+				giveUserCashDealer(who, -tax)
 				print("$" .. cash, "Taxed " .. who .. " $" .. tax, "(daily=~" .. (tax * 480) .. ")")
 			end
 		end
