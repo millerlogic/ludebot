@@ -1586,7 +1586,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 							doErrorPrint(errprint, nick, cerr)
 						end
 					end
-				end, nil, nil, nil, nil, nil, dbotsandbox_http_proxy)
+				end, nil, nil, nil, dbotsandbox_http_proxy)
 			if not a then
 				return nil, tostring(b)
 			end
