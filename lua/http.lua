@@ -47,7 +47,6 @@ function HttpClient:request(url, method)
 		--
 	elseif proto == 'https' then
 		defport = 443
-		if self.tls then
 		if not self.tls and not http_proxy_host then
 		 	return nil, "https not supported"
 		end
