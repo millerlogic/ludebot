@@ -26,6 +26,7 @@ for i, req in ipairs(dbotReqs) do
 end
 
 dbotIncs = { -- TODO: move to config.
+	"dbotsandbox_networking",
 	"gamearmleg",
 	-- "unicodedata",
 	"chatbot_hook",
