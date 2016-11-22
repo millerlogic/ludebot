@@ -134,16 +134,17 @@ end
 -- For no timeout, set to false.
 -- maxRedirects defaults to 3, can be 0 to disable auto-redirecting.
 -- Returns the HTTP client socket, allowing values to be tweaked and read.
-function httpGet(manager, url, callback, timeout, maxRedirects, headers)
-	return httpRequest(manager, url, callback, timeout, maxRedirects, nil, nil, headers)
+function httpGet(manager, url, callback, timeout, maxRedirects, headers, http_proxy)
+	return httpRequest(manager, url, callback, timeout, maxRedirects, nil, nil, headers, http_proxy)
 end
 
 
-function httpRequest(manager, url, callback, timeout, maxRedirects, method, body, headers)
+function httpRequest(manager, url, callback, timeout, maxRedirects, method, body, headers, http_proxy)
 	if timeout == nil then timeout = 10 end
 	maxRedirects = maxRedirects or 3
 	assert(timeout == false or timeout > 0)
 	local sock = HttpClient()
+	sock.http_proxy = http_proxy
 	if timeout then
 		 Timer(timeout, function(t)
 			t:stop()
