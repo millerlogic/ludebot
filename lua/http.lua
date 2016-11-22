@@ -40,6 +40,9 @@ end
 function HttpClient:request(url, method)
 	local proto, addr, port, vurl = parseURL(url)
 	local defport = 80
+	if not proto then
+		url = "http://" .. url -- Fix this for proxy URL.
+	end
 	proto = (proto or 'http'):lower()
 	http_proxy_host, http_proxy_port_str = (self.http_proxy or ""):match("^([^:]+):?(%d*)$")
 	http_proxy_port = tonumber(http_proxy_port_str) or 3128
