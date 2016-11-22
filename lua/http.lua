@@ -41,13 +41,14 @@ function HttpClient:request(url, method)
 	local proto, addr, port, vurl = parseURL(url)
 	local defport = 80
 	proto = (proto or 'http'):lower()
+	http_proxy_host, http_proxy_port_str = (self.http_proxy or ""):match("^([^:]+):?(%d*)$")
+	http_proxy_port = tonumber(http_proxy_port_str) or 3128
 	if proto == 'http' then
 		--
 	elseif proto == 'https' then
 		defport = 443
-		-- assert(self.tls, "https not supported")
-		if not self.tls then
-			return nil, "https not supported"
+		if not self.tls and not http_proxy_host then
+		 	return nil, "https not supported"
 		end
 		if not self:tls() then
 			print("Failure using https for", url)
@@ -59,7 +60,12 @@ function HttpClient:request(url, method)
 		return nil, "Protocol not supported: " .. proto
 	end
 	self:blocking(false)
-	local a, b = self:connect(addr, port or defport)
+	local a, b
+	if http_proxy_host then
+		a, b = self:connect(http_proxy_host, http_proxy_port)
+	else
+		a, b = self:connect(addr, port or defport)
+	end
 	if not a then
 		return nil, b
 		-- return nil, tostring(b) .. " (connect)"
@@ -72,7 +78,7 @@ function HttpClient:request(url, method)
 			self.headers["Host"] = addr
 		end
 	end
-	self:send(method .. " " .. vurl .. " HTTP/1.0\r\n")
+	self:send(method .. " " .. (http_proxy_host and url or vurl) .. " HTTP/1.0\r\n")
 	for k, v in pairs(self.headers) do
 		self:send(k .. ": " .. v .. "\r\n")
 	end
