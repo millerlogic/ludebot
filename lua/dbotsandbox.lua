@@ -1705,7 +1705,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 								doErrorPrint(errprint, nick, cerr)
 							end
 						end
-					end, nil, nil, method, reqbody)
+					end, nil, nil, method, reqbody, headers)
 			if httpobj then
 				local data, mimeType, charset = coroutine.yield(coro)
 				if not data then
