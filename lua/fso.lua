@@ -409,7 +409,7 @@ function FSO:mount(path, mount_fso, ...)
 		print("Unable to mount", path)
 		return nil, "Unable to mount"
 	end
-	print("Mounted", path)
+	-- print("Mounted", path)
 	return true
 end
 

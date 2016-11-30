@@ -674,7 +674,7 @@ end
 
 function DbotUserFSProvider:permission(res, flag, uid)
 	if self._isallow then
-		print("Allowing permission to:", res, flag, uid)
+		-- print("Allowing permission to:", res, flag, uid)
 		return true
 	end
 	if uid ~= self.uid then
