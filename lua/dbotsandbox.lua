@@ -10,6 +10,8 @@ require "timers"
 require "dbotconfig"
 require "dbotscript"
 require "fsodbot"
+require "utils"
+include "bit"
 
 
 webval = webval or 0
@@ -2142,20 +2144,22 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			env.print("umm.. nevermind.. ", b, c)
 		end
 	end
-	hlp.bit = "Module which adds bitwise operations on numbers"
-	env.bit = env.bit or {}
-	env.bit.tobit = env.bit.tobit or bit.tobit
-	env.bit.bnot = env.bit.bnot or bit.bnot
-	env.bit.band = env.bit.band or bit.band
-	env.bit.bor = env.bit.bor or bit.bor
-	env.bit.bxor = env.bit.bxor or bit.bxor
-	env.bit.lshift = env.bit.lshift or bit.lshift
-	env.bit.rshift = env.bit.rshift or bit.rshift
-	env.bit.arshift = env.bit.arshift or bit.arshift
-	env.bit.rol = env.bit.rol or bit.rol
-	env.bit.ror = env.bit.ror or bit.ror
-	env.bit.bswap = env.bit.bswap or bit.bswap
-	env.bit.tohex = env.bit.tohex or bit.tohex
+	if env.bit or bit then
+		hlp.bit = "Module which adds bitwise operations on numbers"
+		env.bit = env.bit or {}
+		env.bit.tobit = env.bit.tobit or bit.tobit
+		env.bit.bnot = env.bit.bnot or bit.bnot
+		env.bit.band = env.bit.band or bit.band
+		env.bit.bor = env.bit.bor or bit.bor
+		env.bit.bxor = env.bit.bxor or bit.bxor
+		env.bit.lshift = env.bit.lshift or bit.lshift
+		env.bit.rshift = env.bit.rshift or bit.rshift
+		env.bit.arshift = env.bit.arshift or bit.arshift
+		env.bit.rol = env.bit.rol or bit.rol
+		env.bit.ror = env.bit.ror or bit.ror
+		env.bit.bswap = env.bit.bswap or bit.bswap
+		env.bit.tohex = env.bit.tohex or bit.tohex
+	end
 	local metatables
 	env.setmetatable = function(o, mt)
 		assert(type(o) == "table", "setmetatable: not a table")
