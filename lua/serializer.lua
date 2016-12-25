@@ -60,7 +60,8 @@ end
 -- obj is the object to serialize.
 -- file can be a filename, a file object, or any object with a :write(...) method.
 -- if file is nil or omitted, serializes to a string returned.
-function serialize(obj, file)
+-- done can optionally be set to a function called with the file object upon write completion.
+function serialize(obj, file, done)
 	local isstr = false
 	local needclose = false
 	if not file then
@@ -83,6 +84,9 @@ function serialize(obj, file)
 	file:write("\n-- serializer 8906\n")
 	for k, v in pairs(obj) do
 		entry(k, v, 0, file)
+	end
+	if done then
+		done(file)
 	end
 
 	if isstr then return file.str end

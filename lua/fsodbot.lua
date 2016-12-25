@@ -61,12 +61,12 @@ todo: limit bytes written, number of dirs, files, open files...
 
 fsodbotSaveTimer = fsodbotSaveTimer or Timer(5, function(timer)
 		if fsodbotDirty then
-			local xok, xerr = serialize(fsodbotData, "fsodbot.d$1" .. (datx or ''))
+			local xok, xerr = serialize(fsodbotData, "fsodbot.d$1" .. (datx or ''), filesync)
 			if xok then
 				os.remove("fsodbot.d$2" .. (datx or ''))
 				assert(os.rename("fsodbot.dat" .. (datx or ''), "fsodbot.d$2" .. (datx or '')))
 				assert(os.rename("fsodbot.d$1" .. (datx or ''), "fsodbot.dat" .. (datx or '')))
-				os.remove("fsodbot.d$2" .. (datx or ''))
+				-- os.remove("fsodbot.d$2" .. (datx or ''))
 				fsodbotDirty = false
 			else
 				io.stderr:write("Unable to save fsodbot.dat" .. (datx or '') .. ": ", xerr or "", "\n")

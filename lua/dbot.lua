@@ -9,6 +9,7 @@ require "html"
 require "timers"
 require "circletable"
 include "bit"
+include "posix"
 
 dbotReqs = {
 	"bot",
@@ -47,6 +48,23 @@ include "tlssockets"
 
 
 cmdchar = "\\"
+
+
+if posix and posix.stdio and posix.unistd then
+	function filesync(f)
+		local a, b, c = posix.unistd.fsync(posixstdio.fileno(f))
+		if a == 0 then
+			print("File sync successful")
+			return 0
+		end
+		print("File sync NOT successful: ", a, b, c)
+		return a, b, c
+	end
+else
+	function filesync(f)
+		return nil, "Not implemented", 0
+	end
+end
 
 
 chatHistories = chatHistories or {} -- Indexed by lowercase destination.
