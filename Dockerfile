@@ -19,6 +19,7 @@ RUN wget --no-check-certificate -O/luasandy/lua/sandbox.lua https://raw.githubus
 
 ENV IRCCMD_PATH /irccmd/irccmd
 ENV LUDEBOT_LUA_PATH /ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;
+ENV LUDEBOT_LUA_CPATH ./?.so;/irccmd/?.so;/ludebot/?.so;/usr/local/lib/lua/5.1/?.so;/usr/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so
 
 # default
 ENV LUDEBOT_RUN next
