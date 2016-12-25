@@ -17,7 +17,7 @@ $LUA_PROJECTS/irccmd/irccmd $IRC_SERVER $IRC_NICK "-input:RUN=$RUN {1+}" -load=$
 # Add -flag=firstrun to create initial configs for the first run.
 --]]
 
-require("internal")
+require("irccmd_internal")
 require("utils")
 require("sockets")
 require("dbot")

@@ -33,7 +33,7 @@ if (not internal or internal._icDebug) and not _armlegDebug then
 	_armlegDebug = true
 	-- debugPPRIVMSG = "$="
 	debugPPRIVMSG = "$flip heads"
-	require("internal")
+	require("irccmd_internal")
 
 	--[[
 	Timer = function(secs, func)
