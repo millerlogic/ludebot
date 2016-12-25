@@ -52,7 +52,7 @@ cmdchar = "\\"
 
 if posix and posix.stdio and posix.unistd then
 	function filesync(f)
-		local a, b, c = posix.unistd.fsync(posixstdio.fileno(f))
+		local a, b, c = posix.unistd.fsync(posix.stdio.fileno(f))
 		if a == 0 then
 			print("File sync successful")
 			return 0
