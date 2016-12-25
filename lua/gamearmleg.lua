@@ -84,12 +84,12 @@ end
 
 alSaveTimer = alSaveTimer or Timer(5, function(timer)
 		if alDirty then
-			local xok, xerr = serialize(alData, "armleg.d$1" .. (datx or ''))
+			local xok, xerr = serialize(alData, "armleg.d$1" .. (datx or ''), filesync)
 			if xok then
 				os.remove("armleg.d$2" .. (datx or ''))
 				assert(os.rename("armleg.dat" .. (datx or ''), "armleg.d$2" .. (datx or '')))
 				assert(os.rename("armleg.d$1" .. (datx or ''), "armleg.dat" .. (datx or '')))
-				os.remove("armleg.d$2" .. (datx or ''))
+				-- os.remove("armleg.d$2" .. (datx or ''))
 				alDirty = false
 			else
 				io.stderr:write("Unable to save armleg.dat" .. (datx or '') .. ": ", xerr or "", "\n")
