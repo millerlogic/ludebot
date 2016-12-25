@@ -49,59 +49,6 @@ include "tlssockets"
 cmdchar = "\\"
 
 
-if TelegramBot and not tbot then
-	local tbotKeyFile, tbotKeyFileErr = io.open("tbot.key");
-	if tbotKeyFile then
-		local tbotKey = tbotKeyFile:read()
-		tbotKeyFile:close()
-		tbot = TelegramBot(tbotKey)
-		-- To-do: move this...
-		function tbot:onUpdate(response)
-			local Telegram
-			local function tbotPrint(...)
-				if Telegram and Telegram.onPrint then
-					Telegram.onPrint(...)
-				end
-			end
-			local client = UnitClient(tbotPrint)
-			dbotRunSandboxHooked(client,
-					"$telegram!telegram@telegram.", "<chan>", "etc.on_telegram_update()", function(env)
-						setUnitEnv(env, allowHttp)
-						local realprint = env.print
-						env.print = function(...)
-							if env.Output.printTypeConvert == 'auto' then
-								env.Output.printTypeConvert = 'plain'
-							end
-							return realprint(...)
-						end
-						env.Output.mode = 'plain'
-						env.Event = { name = "telegram-update" }
-						local maxSends = 4
-						Telegram = {
-							update = response;
-							sendMessage = function(chat_id, text)
-								if maxSends > 0 then
-									maxSends = maxSends - 1
-									tbot:sendMessage(chat_id, text)
-								end
-							end;
-							onPrint = function() end; -- stub
-							isUserTicket = function(user, tik)
-								assert(env.allCodeTrusted(), "Not trusted")
-								return false
-							end;
-						}
-						env.Telegram = Telegram
-					end, 10000, true)
-		end
-		tbot._debug = true
-		tbot:start(manager)
-	else
-		print("Was not able to read tbot.key for TelegramBot")
-	end
-end
-
-
 chatHistories = chatHistories or {} -- Indexed by lowercase destination.
 
 ---
