@@ -75,6 +75,6 @@ end
 
 local LUA_PATH = config.LUDEBOT_LUA_PATH or os.getenv("LUDEBOT_LUA_PATH") or "../ludebot/lua/?.lua;../irccmd/lua/?.lua;../luasandy/lua/?.lua;;"
 
-local LUA_CPATH = config.LUDEBOT_LUA_CPATH or os.getenv("LUDEBOT_LUA_CPATH") or "./?.so;/usr/local/lib/lua/5.1/?.so;/usr/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so"
+local LUA_CPATH = config.LUDEBOT_LUA_CPATH or os.getenv("LUDEBOT_LUA_CPATH") or "./?.so;../irccmd/?.so;/usr/local/lib/lua/5.1/?.so;/usr/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so"
 
 return exec("LUA_PATH="..shell_escape(LUA_PATH).." LUA_CPATH="..shell_escape(LUA_CPATH).." "..shell_escape(argv))
