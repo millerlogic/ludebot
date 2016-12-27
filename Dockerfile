@@ -11,7 +11,7 @@ FROM millerlogic/irccmd
 USER root
 
 # For: wordnet functionality in bot.
-RUN apt-get install wordnet -y
+RUN apt-get install wordnet-base -y
 
 # Pull in luasandy.
 RUN mkdir -p /luasandy/lua
