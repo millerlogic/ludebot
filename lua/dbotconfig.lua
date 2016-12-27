@@ -40,12 +40,12 @@ end
 
 dbotSaveTimer = dbotSaveTimer or Timer(5, function(timer)
 		if dbotDirty then
-			local xok, xerr = serialize(dbotData, "dbot.d$1" .. (datx or ''), filesync)
+			local xok, xerr = serialize(dbotData, "dbot.new.dat" .. (datx or ''), filesync)
 			if xok then
-				os.remove("dbot.d$2" .. (datx or ''))
-				assert(os.rename("dbot.dat" .. (datx or ''), "dbot.d$2" .. (datx or '')))
-				assert(os.rename("dbot.d$1" .. (datx or ''), "dbot.dat" .. (datx or '')))
-				-- os.remove("dbot.d$2" .. (datx or ''))
+				os.remove("dbot.old.dat" .. (datx or ''))
+				assert(os.rename("dbot.dat" .. (datx or ''), "dbot.old.dat" .. (datx or '')))
+				assert(os.rename("dbot.new.dat" .. (datx or ''), "dbot.dat" .. (datx or '')))
+				-- os.remove("dbot.old.dat" .. (datx or ''))
 				dbotDirty = false
 			else
 				io.stderr:write("Unable to save dbot.dat" .. (datx or '') .. ": ", xerr or "", "\n")
@@ -53,12 +53,12 @@ dbotSaveTimer = dbotSaveTimer or Timer(5, function(timer)
 		end
 		--
 		if seenDirty then
-			local xok, xerr = serialize(seenData, "lseen.d$1" .. (datx or ''), filesync)
+			local xok, xerr = serialize(seenData, "lseen.new.dat" .. (datx or ''), filesync)
 			if xok then
-				os.remove("lseen.d$2" .. (datx or ''))
-				assert(os.rename("lseen.dat" .. (datx or ''), "lseen.d$2" .. (datx or '')))
-				assert(os.rename("lseen.d$1" .. (datx or ''), "lseen.dat" .. (datx or '')))
-				-- os.remove("lseen.d$2" .. (datx or ''))
+				os.remove("lseen.old.dat" .. (datx or ''))
+				assert(os.rename("lseen.dat" .. (datx or ''), "lseen.old.dat" .. (datx or '')))
+				assert(os.rename("lseen.new.dat" .. (datx or ''), "lseen.dat" .. (datx or '')))
+				-- os.remove("lseen.old.dat" .. (datx or ''))
 				seenDirty = false
 			else
 				io.stderr:write("Unable to save lseen.dat" .. (datx or '') .. ": ", xerr or "", "\n")
