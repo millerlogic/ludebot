@@ -11,6 +11,7 @@ and <a href="https://github.com/millerlogic/luasandy">luasandy</a>.
 * Install Lua 5.1 using your platform's favorite package manager, or using the download from the Lua site. The packages may be named similarly to lua5.1 and liblua5.1-0-dev.
 * Fetch and build <a href="https://github.com/millerlogic/irccmd">irccmd</a>.
 * Fetch <a href="https://github.com/millerlogic/luasandy">luasandy</a>.
+* Recommended to install bitop and luaposix, can use luarocks.
 * Copy ludebot.conf.example to ludebot.conf and edit it. Then run ./ludebot.
 
 ### Dockerfile
