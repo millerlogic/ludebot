@@ -85,6 +85,7 @@ function serialize(obj, file, done)
 	for k, v in pairs(obj) do
 		entry(k, v, 0, file)
 	end
+	file:flush()
 	if done then
 		done(file)
 	end
