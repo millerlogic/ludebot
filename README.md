@@ -29,7 +29,7 @@ cp ludebot.conf.example ~/.ludebot-state/ludebot.conf # edit as needed
 chmod g+rwx ~/.ludebot-state
 chgrp 28101 ~/.ludebot-state
 
-docker run \
+docker run -d \
   --name mybot \
   -v "~/.ludebot-state:/ludebot-state" \
   millerlogic/ludebot
