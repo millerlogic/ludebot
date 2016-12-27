@@ -31,6 +31,6 @@ chgrp 28101 ~/.ludebot-state
 
 docker run -d \
   --name mybot \
-  -v "~/.ludebot-state:/ludebot-state" \
+  -v ~/.ludebot-state:/ludebot-state \
   millerlogic/ludebot
 ```
