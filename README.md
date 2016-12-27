@@ -11,32 +11,25 @@ and <a href="https://github.com/millerlogic/luasandy">luasandy</a>.
 * Install Lua 5.1 using your platform's favorite package manager, or using the download from the Lua site. The packages may be named similarly to lua5.1 and liblua5.1-0-dev.
 * Fetch and build <a href="https://github.com/millerlogic/irccmd">irccmd</a>.
 * Fetch <a href="https://github.com/millerlogic/luasandy">luasandy</a>.
-* Recommended to install <a href="http://bitop.luajit.org/">BitOp</a>.
-```
-cd LuaBitOp-*
-make INCLUDES=-I/usr/include/lua5.1
-sudo make install
-```
-If the above cannot find your lua include headers, try make without the INCLUDES=..., or change it based on where the dev headers are on your system.
-
 * Copy ludebot.conf.example to ludebot.conf and edit it. Then run ./ludebot.
 
 ### Dockerfile
 
 To use ludebot with docker:
 * Build the millerlogic/<a href="https://github.com/millerlogic/irccmd">irccmd</a> and millerlogic/ludebot images.
-* Link a local path into the container's /ludebot-state and add your ludebot.conf to it. This location will also hold any of the bot's persistent state.
-* Set environment variable LUDEBOT_RUN=first if you want to have the bot generate empty state files for you if this is your first time running it. (this step may be changed/removed in the future)
+* Link a local path into the container's /ludebot-state. Ensure uid 28101 can write to this location. This location will hold any of the bot's persistent state and configs.
+* Add your ludebot.conf to the container's ludebot-state
 
 Example:
 
 ```
+mkdir ~/.ludebot-state
+cp ludebot.conf.example ~/.ludebot-state/ludebot.conf # edit as needed
+chmod g+rwx ~/.ludebot-state
+chgrp 28101 ~/.ludebot-state
+
 docker run \
   --name mybot \
-  -e LUDEBOT_RUN=first \
   -v "~/.ludebot-state:/ludebot-state" \
   millerlogic/ludebot
-  ```
-  
- Remember to remove `-e LUDEBOT_RUN=first` for the subsequent runs.
- 
+```

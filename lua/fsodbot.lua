@@ -16,8 +16,8 @@ if not fsodbotData and irccmd then
 	end
 	local t, xerr = deserialize("fsodbot.dat" .. (datx or ''))
 	if not t then
-		assert(firstrun, "Unable to load fsodbot.dat" .. (datx or '') .. " Use -flag=firstrun")
-		t = { fs = { ["?t"] = "d" }, users = { }, groups = { } }
+		assert(not nextrun, "Unable to load fsodbot.dat" .. (datx or ''))
+		t = { fs = { ["?t"] = "d", user = { ["?t"] = "d" } }, users = { }, groups = { } }
 		serialize(t, "fsodbot.dat")
 	end
 	assert(type(t.fs) == "table")

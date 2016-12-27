@@ -5,7 +5,7 @@
 # If not using a helper script:
 # When running the container, specify the following volume from the host.
 #   -v /path/to/ludebot-state:/ludebot-state # the working dir and for data files.
-# On the first run only, also include -e "LUDEBOT_RUN=first"
+# Optionally include -e LUDEBOT_RUN=next to bail out if the bot can't find your configs.
 
 FROM millerlogic/irccmd
 USER root
@@ -22,7 +22,7 @@ ENV LUDEBOT_LUA_PATH /ludebot/lua/?.lua;/irccmd/lua/?.lua;/luasandy/lua/?.lua;;
 ENV LUDEBOT_LUA_CPATH ./?.so;/irccmd/?.so;/ludebot/?.so;/usr/local/lib/lua/5.1/?.so;/usr/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so
 
 # default
-ENV LUDEBOT_RUN next
+ENV LUDEBOT_RUN any
 ENV LUDEBOT_CONF_PATH /ludebot-state/ludebot.conf
 
 # Add the host dir.

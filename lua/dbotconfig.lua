@@ -13,7 +13,7 @@ if not dbotData and irccmd then
 	dbotDirty = false
 	local t, xerr = deserialize("dbot.dat" .. (datx or ''))
 	if not t then
-		assert(firstrun, "Unable to load dbot.dat" .. (datx or '') .. " Use -flag=firstrun")
+		assert(not nextrun,  "Unable to load dbot.dat" .. (datx or ''))
 		t = { infoset = {}, seen = {}, login = {} }
 		serialize(t, "dbot.dat")
 	end
@@ -29,7 +29,7 @@ if not seenData and irccmd then
 	seenDirty = false
 	local t, xerr = deserialize("lseen.dat" .. (datx or ''))
 	if not t then
-		assert(firstrun, "Unable to load lseen.dat" .. (datx or '') .. " Use -flag=firstrun")
+		assert(not nextrun, "Unable to load lseen.dat" .. (datx or ''))
 		t = { seen = {} }
 		serialize(t, "lseen.dat")
 	end

@@ -14,7 +14,7 @@ export LUA_PATH="$LUA_PROJECTS/ludebot/lua/?.lua;$LUA_PROJECTS/irccmd/lua/?.lua;
 
 # Run ludebot:
 $LUA_PROJECTS/irccmd/irccmd $IRC_SERVER $IRC_NICK "-input:RUN=$RUN {1+}" -load=$LUA_PROJECTS/ludebot/lua/dbotloader.lua
-# Add -flag=firstrun to create initial configs for the first run.
+-# Optionally add -flag=nextrun to bail out if the bot can't find your configs.
 --]]
 
 require("irccmd_internal")
