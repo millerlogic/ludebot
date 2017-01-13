@@ -1340,8 +1340,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.var = function(name, value)
 	end
 	--]]
+	local isTelegram = client:network() == "Telegram"
 	local nprintlines = 0
-	local maxprintlines = tonumber(maxPrints) or 4
+	local maxprintlines = tonumber(maxPrints) or (isTelegram and 15 or 4)
+	local maxLineLength = isTelegram and 2000 or 400
 	envprint = function(...)
 		---
 		local src = 'irc'
@@ -1372,12 +1374,13 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				if wantsuffix == "true" then
 					suffix = " (" .. (nick or "?") .. ")"
 				end
-				local act = uln:match("^\001[Aa][Cc][Tt][Ii][Oo][Nn] ([^\001]+)")
-				if act then
-					local x = outputPrintConvert(src, conv, safeString(act .. suffix))
-					client:sendMsg(dest, "\001ACTION " .. x .. "\001", "dbotSandbox")
+				local ctcp, ctcpText = uln:match("^\001([^ ]+) ([^\001]+)")
+				local ctcpUpper = (ctcp or "").upper()
+				if ctcpUpper == "ACTION" or (ctcpUpper == "TELEGRAM-STICKER" and isTelegram) then
+					local x = outputPrintConvert(src, conv, safeString(ctcpText, maxLineLength - #suffix) .. suffix))
+					client:sendMsg(dest, "\001" .. ctcpUpper .. " " .. x .. "\001", "dbotSandbox")
 				else
-					local x = outputPrintConvert(src, conv, safeString(uln .. suffix))
+					local x = outputPrintConvert(src, conv, safeString(uln, maxLineLength - #suffix) .. suffix))
 					client:sendMsg(dest, x, "dbotSandbox")
 				end
 			end
@@ -1404,6 +1407,17 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	hlp.action = "Send an action message, also known as /me"
 	env.action = function(msg)
 		env.print("\001ACTION " .. msg .. "\001")
+	end
+	hlp.sendSticker = "Send a sticker (if supported), or returns false"
+	env.sendSticker = function(sticker)
+		if type(sticker) == "string" then
+			if isTelegram then
+				env.print("\001TELEGRAM-STICKER " .. sticker .. "\001")
+				return true
+			end
+			return false, "Sticker not supported"
+		end
+		return false, "Invalid sticker"
 	end
 	hlp.allCodeSecure = "Returns true if all code called was confirmed as secure"
 	env.allCodeSecure = function() return allCodeSecure end
@@ -2441,7 +2455,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.Output = env.Output or {}
 	-- env.Output.maxLines = 4
 	env.Output.maxLines = maxprintlines
-	env.Output.maxLineLength = 400
+	env.Output.maxLineLength = maxLineLength
 	env.Output.printType = 'irc'
 	env.Output.printTypeConvert = 'auto'
 	env.Output.mode = 'irc'
