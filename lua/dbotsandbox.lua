@@ -765,7 +765,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		-- local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.", true)) -- demand
 		local guestacct = assert(getGuestAccount()) -- demand
 		local guestnick = guestacct:nick()
-		return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
+		local fn, a loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
+		if fn then
+			return fn
+		end
+		return fn, a
 	end
 	
 	-- Note: this function is directly callable by sandbox user.
