@@ -1375,7 +1375,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 					suffix = " (" .. (nick or "?") .. ")"
 				end
 				local ctcp, ctcpText = uln:match("^\001([^ ]+) ([^\001]+)")
-				local ctcpUpper = (ctcp or "").upper()
+				local ctcpUpper = (ctcp or ""):upper()
 				if ctcpUpper == "ACTION" or (ctcpUpper == "TELEGRAM-STICKER" and isTelegram) then
 					local x = outputPrintConvert(src, conv, safeString(ctcpText, maxLineLength - #suffix) .. suffix)
 					client:sendMsg(dest, "\001" .. ctcpUpper .. " " .. x .. "\001", "dbotSandbox")
