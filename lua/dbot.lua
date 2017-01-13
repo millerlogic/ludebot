@@ -862,12 +862,13 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 	
 	local logmsg = msg
 	local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")
+	local ctcpUpper = (ctcp or ""):upper()
 	if ctcp then
-		if ctcp:upper() == "ACTION" then
+		if ctcpUpper) == "ACTION" then
 			logmsg = nick .. " " .. ctcpText
-		elseif ctcp == "TELEGRAM-STICKER" then
+		elseif ctcpUpper == "TELEGRAM-STICKER" then
 			-- Log it as-is.
-		elseif ctcp:upper() == "MSG" and nick ~= client:nick() then
+		elseif ctcpUpper == "MSG" and nick ~= client:nick() then
 			local acct = getUserAccount(prefix, true)
 			if acct and acct:demand("msg") then
 				local target, message = ctcpText:match("([^ ]+) (.+)")
@@ -875,8 +876,9 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 					client:sendMsg(target, message)
 				end
 			end
+		else
+			return -- Don't bother keeping track of other CTCP here.
 		end
-		return -- Don't bother keeping track of other CTCP here.
 	end
 	
 	if chan then
