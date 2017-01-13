@@ -197,7 +197,7 @@ function httpRequest(manager, url, callback, timeout, maxRedirects, method, body
 						url = loc
 					end
 					-- Note: timeout resets each redirect.
-					httpGet(manager, url, callback, timeout, maxRedirects, nil, nil, headers)
+					httpGet(manager, url, callback, timeout, maxRedirects, nil, nil, headers, http_proxy)
 					return
 				end
 			end
