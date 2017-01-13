@@ -864,7 +864,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 	local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")
 	local ctcpUpper = (ctcp or ""):upper()
 	if ctcp then
-		if ctcpUpper) == "ACTION" then
+		if ctcpUpper == "ACTION" then
 			logmsg = nick .. " " .. ctcpText
 		elseif ctcpUpper == "TELEGRAM-STICKER" then
 			-- Log it as-is.
