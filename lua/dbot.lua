@@ -867,7 +867,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 			logmsg = nick .. " " .. ctcpText
 		elseif ctcp == "TELEGRAM-STICKER" then
 			-- Log it as-is.
-		elseif ctcp:upper() == "MSG" and nick != client:nick() then
+		elseif ctcp:upper() == "MSG" and nick ~= client:nick() then
 			local acct = getUserAccount(prefix, true)
 			if acct and acct:demand("msg") then
 				local target, message = ctcpText:match("([^ ]+) (.+)")
