@@ -765,11 +765,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		-- local guestacct = assert(getUserAccount(guestnick .. "!guest@guest.", true)) -- demand
 		local guestacct = assert(getGuestAccount()) -- demand
 		local guestnick = guestacct:nick()
-		local fn, a loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
-		if fn then
-			return fn
-		end
-		return fn, a
+		return loadstringAsUser(code, name, { faddr = guestnick, acctID = guestacct.id })
 	end
 	
 	-- Note: this function is directly callable by sandbox user.
@@ -2532,7 +2528,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			if not whyNotCodeTrusted() then whyNotCodeTrusted(name or "loadstring") end
 			-- nontrustCallNum = nontrustCallNum + 1
 			trustedCodeAcctID = -1
-			return loadstringAsGuest(src, name or 'user.loadstring')
+			local fn, x loadstringAsGuest(src, name or 'user.loadstring')
+			if fn then
+				return fn
+			end
+			return fn, x
 		end
 		env.guestloadstring = renv.guestloadstring
 		hlp.unsafeloadstring = "loadstring which does not protect the caller's environment"
