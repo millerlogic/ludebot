@@ -2528,7 +2528,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			if not whyNotCodeTrusted() then whyNotCodeTrusted(name or "loadstring") end
 			-- nontrustCallNum = nontrustCallNum + 1
 			trustedCodeAcctID = -1
-			local fn, x loadstringAsGuest(src, name or 'user.loadstring')
+			local fn, x = loadstringAsGuest(src, name or 'user.loadstring')
 			if fn then
 				return fn
 			end
