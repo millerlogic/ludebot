@@ -142,14 +142,29 @@ function doErrorPrint(errprint, nick, msg)
 end
 
 
+function dbotFlushPrintBatch(res)
+	if res.inPrintBatch then
+		res.client:sendLine("BATCH -dbotSandbox-print irctelegram.bridge/TBATCHMSG")
+		res.inPrintBatch = false
+	end
+end
+
+
+function dbotYield(res, ...)
+	dbotFlushPrintBatch(res)
+	return coroutine.yield(...)
+end
+
+
 function dbotResume(res, ...)
 	internal.memory_limit(dbotMemLimit, res.coro)
 	local ok, y = coroutine.resume(res.coro, ...)
 	internal.memory_limit(0, res.coro)
+	local result = true
 	if not ok then
 		if type(y) ~= "string" then
 			doErrorPrint(res.errprint, res.nick, "(" .. type(y) .. ")")
-			return false
+			result = false
 		elseif res.timeoutstr and y == "Run timeout{E6A0C4BD-75DC-4313-A1AF-7666ED28545B}" then
 			res.errprint(res.timeoutstr)
 		elseif y == "exit 0{E6A0C4BD-75DC-4313-A1AF-7666ED28545B}" then
@@ -166,10 +181,11 @@ function dbotResume(res, ...)
 				assert(ecache, "ecache")
 				ecache[res.nick:lower()] = tb
 			end
-			return false
+			result = false
 		end
 	end
-	return true
+	dbotFlushPrintBatch(res)
+	return result
 end
 
 
@@ -1303,6 +1319,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return h.msg, h.who, h.time
 	end
+	hlp._flushOutput = "If output batching is enabled, this can be used to flush the batch."
+	env._flushOutput = function()
+		dbotFlushPrintBatch(res)
+	end
 	local notices = nil -- Can only send 1 notice per user.
 	hlp.sendNotice = "Send an IRC notice message to a nick/channel. Limitations apply."
 	env.sendNotice = function(to, msg)
@@ -1369,8 +1389,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		-- printbuf = printbuf .. "\n"
 		for uln in printbuf:gmatch("([^\r\n]+)") do
 			if nprintlines < maxprintlines then
-				if isTelegram and nprintlines == 0 and (not env.Output or env.Output.batched) then
+				local canTelegramBatch = isTelegram and (not env.Output or env.Output.batched)
+				if canTelegramBatch and not res.inPrintBatch then
 					client:sendLine("BATCH +dbotSandbox-print irctelegram.bridge/TBATCHMSG")
+					res.inPrintBatch = true
 				end
 				nprintlines = nprintlines + 1
 				local suffix = ""
@@ -1398,6 +1420,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	local res = { -- dbotResume object
 		errprint = errprint,
 		nick = nick,
+		client = client,
 	}
 	env.print = envprint
 	hlp.singleprint = "Prints the arguments only if nothing has been printed yet"
@@ -1529,7 +1552,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end, maxPrints, noerror)
 		coroutine.resume(cr)
 		-- Terminate THIS thread...
-		coroutine.yield()
+		dbotYield(res)
 	end
 	--]]
 	env._getCards = function(numberOfDecks, wantJokers)
@@ -1611,7 +1634,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				return nil, tostring(b)
 			end
 			if not callback and coro then
-				return coroutine.yield(coro)
+				return dbotYield(res)
 			end
 			return true
 		end
@@ -1668,7 +1691,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 						end
 					end, nil, nil, "POST", body, nil, dbotsandbox_http_proxy) then
 				if not callback and coro then
-					return coroutine.yield(coro)
+					return dbotYield(res)
 				end
 				return true
 			end
@@ -1727,7 +1750,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 						end
 					end, nil, nil, method, reqbody, headers, dbotsandbox_http_proxy)
 			if httpobj then
-				local data, mimeType, charset = coroutine.yield(coro)
+				local data, mimeType, charset = dbotYield(res)
 				if not data then
 					return data, mimeType
 				end
@@ -1875,7 +1898,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			dbotResume(res)
 		end)
 		tmr:start()
-		return coroutine.yield(coro)
+		return dbotYield(res)
 	end
 	env.sleep = sleep
 	local numyields = 0
@@ -1894,7 +1917,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 				dbotResume(res)
 			end)
 			tmr:start()
-			return coroutine.yield(coro)
+			return dbotYield(res)
 		end
 	end
 	local userInput = function(...)
@@ -1995,7 +2018,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			dbotResume(res, nil, nil, "input timeout")
 		end)
 		tmr:start()
-		return coroutine.yield(coro)
+		return dbotYield(res)
 	end
 	hlp.input = "Waits for user input; a list of words to wait for can be provided along with a maximum timeout in seconds; returns user, word, arguments. This function has limitations, and should consider using reenter() instead."
 	env.input = userInput
@@ -2604,14 +2627,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	coro = ok
 	res.coro = coro
-	-- return dbotResume(res)
-	return (function(...)
-		-- Done with coroutine.
-		if isTelegram and nprintlines > 0 then
-			client:sendLine("BATCH -dbotSandbox-print irctelegram.bridge/TBATCHMSG")
-		end
-		return ...
-	end)(dbotResume(res))
+	dbotResume(res)
 end
 
 
