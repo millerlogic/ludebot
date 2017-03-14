@@ -2627,7 +2627,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	coro = ok
 	res.coro = coro
-	dbotResume(res)
+	return dbotResume(res)
 end
 
 
