@@ -1340,7 +1340,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.var = function(name, value)
 	end
 	--]]
-	local isTelegram = client:network() == "Telegram"
+	-- local isTelegram = client:network() == "Telegram"
+	local isTelegram = client.isTelegram
 	local nprintlines = 0
 	local maxprintlines = tonumber(maxPrints) or (isTelegram and 15 or 4)
 	local maxLineLength = isTelegram and 2000 or 400
@@ -1368,6 +1369,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		-- printbuf = printbuf .. "\n"
 		for uln in printbuf:gmatch("([^\r\n]+)") do
 			if nprintlines < maxprintlines then
+				if isTelegram and nprintlines == 0 and (not env.Output or env.Output.batched) then
+					client:sendLine("BATCH +dbotSandbox-print irctelegram.bridge/TBATCHMSG")
+				end
 				nprintlines = nprintlines + 1
 				local suffix = ""
 				local wantsuffix = chan and getDestConf(chan, "print_suffix")
@@ -2460,6 +2464,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.Output.printTypeConvert = 'auto'
 	env.Output.mode = 'irc'
 	env.Output.tty = true
+	env.Output.batched = isTelegram
 	hlp.Input = "A table containing information about input"
 	env.Input = env.Input or {}
 	--[[
@@ -2599,7 +2604,14 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	coro = ok
 	res.coro = coro
-	return dbotResume(res)
+	-- return dbotResume(res)
+	return (function(...)
+		-- Done with coroutine.
+		if isTelegram and nprintlines > 0 then
+			client:sendLine("BATCH -dbotSandbox-print irctelegram.bridge/TBATCHMSG")
+		end
+		return ...
+	end)(dbotResume(res))
 end
 
 
