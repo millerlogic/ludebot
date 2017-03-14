@@ -1319,10 +1319,6 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return h.msg, h.who, h.time
 	end
-	hlp._flushOutput = "If output batching is enabled, this can be used to flush the batch."
-	env._flushOutput = function()
-		dbotFlushPrintBatch(res)
-	end
 	local notices = nil -- Can only send 1 notice per user.
 	hlp.sendNotice = "Send an IRC notice message to a nick/channel. Limitations apply."
 	env.sendNotice = function(to, msg)
@@ -1355,6 +1351,10 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		notices[to:lower()] = 1
 	end
+	local res = { -- dbotResume object
+		nick = nick,
+		client = client,
+	}
 	--[[
 	local vars = runVars
 	env.var = function(name, value)
@@ -1417,12 +1417,12 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	else
 		errprint = envprint
 	end
-	local res = { -- dbotResume object
-		errprint = errprint,
-		nick = nick,
-		client = client,
-	}
+	res.errprint = errprint
 	env.print = envprint
+	hlp._flushOutput = "If output batching is enabled, this can be used to flush the batch."
+	env._flushOutput = function()
+		dbotFlushPrintBatch(res)
+	end
 	hlp.singleprint = "Prints the arguments only if nothing has been printed yet"
 	env.singleprint = function(...)
 		if cansingleprint then
