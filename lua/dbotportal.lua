@@ -11,7 +11,6 @@ require("html")
 
 if not dbotPortal then
 	dbotPortalHost = "127.0.0.1"
-	dbotPortalUserHost = "127.0.0.2"
 	dbotPortalPort = 8000 -- Note: httpGet can request from the same host.
 	dbotPortalRoot = "./lua/portal"
 	dbotPortalPrefixVUrl = "/" -- Must end in slash.
@@ -22,6 +21,7 @@ if not dbotPortal then
 		-- Reload: \reload dbotportal_info
 		include("dbotportal_info")
 	end
+	dbotPortalUserHost = dbotPortalUserHost or dbotPortalHost
 
 	dbotPortal = HttpServer(manager)
 	-- dbotPortal = CoroHttpServer(manager)
@@ -38,6 +38,8 @@ end
 dbotPortalURL = ( dbotPortalForceURL
 	or ("http://" .. dbotPortalHost .. ":" .. dbotPortalPort) )
 		.. dbotPortalPrefixVUrl
+
+dbotPortalForceUserURL = dbotPortalForceUserURL or dbotPortalURL
 
 function dbotPortal:onHttpUserConnected(user)
 	print("dbotPortal connection from " .. user.userAddress)
@@ -218,11 +220,16 @@ function accountFromHttpCookie(cookie)
 				local tik = urlDecode(urltik)
 				local nick = tik:match("^[^!]+") or ""
 				local checkAcct = adminGetUserAccount(nick)
-				if checkAcct and checkAcct.tik == tik then
-					local acct = checkAcct
-					return acct
+				if not checkAcct then
+					print("no account for nick " + (nick or "?"))
+					return false
 				end
-				return false
+				if checkAcct.tik ~= tik then
+					print("web ticket mismatch for " .. checkAcct:nick())
+					return false
+				end
+				local acct = checkAcct
+				return acct
 			end
 		end
 	end
@@ -294,6 +301,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		acct = accountFromHttpCookie(headers["Cookie"])
 		if acct == false then
 			acct = nil
+					print("unable to find account from cookie")
 			-- user.responseStatusCode = "401"
 			-- user:send("Session invalidated; please login again")
 			-- return
@@ -302,6 +310,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			if acct.webuseraddr then
 				if acct.webuseraddr ~= user.userAddress then
 					acct = nil
+					print("web user has wrong address")
 					-- user.responseStatusCode = "401"
 					-- user:send("Session invalidated; please login again")
 					-- return
@@ -326,9 +335,11 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 		if checkAcct and checkAcct.tik == tik then
 			local acct = checkAcct
 			nick = acct:nick()
+			print("logged into web")
 			user.responseHeaders["Set-Cookie"] = "ticket=" .. urlEncode(urltik)
 				.. "; expires=" .. os.date("!%a, %d %b %Y %H:%M:%S %Z", os.time() + 60 * 60 * 24 * 7)
-				.. "; domain=" .. (realHost or dbotPortalHost)
+				.. "; domain=" .. (realHost and realHost:match("^([^:]+)") or dbotPortalHost)
+				.. "; port=" .. dbotPortalPort
 				.. "; path=" .. dbotPortalPrefixVUrl .. "t/; HttpOnly"
 			-- Not doing this redirect becuase webkit doesn't keep the cookie.
 			-- user.responseStatusCode = "307"
@@ -338,7 +349,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 <meta http-equiv="refresh" content="0; url=]] .. dbotPortalPrefixVUrl .. [[t/">
 </head>
 <body>
-	<a href=\"/\">Logged in...</a>
+	<a href="]] .. dbotPortalPrefixVUrl .. [[t/">Logged in...</a>
 </body>
 </html>
 ]])
@@ -377,9 +388,8 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 				-- user.responseStatusCode = "417"
 				-- user:send("Invalid site")
 				user.responseStatusCode = "307"
-				user.responseHeaders["Location"] = ( dbotPortalForceUserURL or
-					"http://" .. dbotPortalUserHost .. ":" .. dbotPortalPort )
-						.. dbotPortalPrefixUserVUrl .. vuri:match("(u/.*)") .. (qs or '')
+				user.responseHeaders["Location"] = dbotPortalForceUserURL
+					.. vuri:match("(u/.*)") .. (qs or '')
 				return
 			end
 			uname = urlDecode(uname)
@@ -521,7 +531,7 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			if not acct then
 				print("no ticket 401")
 				user.responseStatusCode = "401"
-				user:send("<a href='" .. dbotPortalForceUserURL .. vuri .. (qs or '') .. "'>Unauthorized?</a>")
+				user:send("<a href='" .. vuri .. (qs or '') .. "'>Unauthorized?</a>")
 				return
 			end
 		end
