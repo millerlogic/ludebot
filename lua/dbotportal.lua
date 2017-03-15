@@ -336,10 +336,11 @@ function dbotPortal_processHttpRequest(user, method, vuri, headers)
 			local acct = checkAcct
 			nick = acct:nick()
 			print("logged into web")
+			local cdomain, cport = (realHost or ""):match("^([^:]+):?(%d*)$")
 			user.responseHeaders["Set-Cookie"] = "ticket=" .. urlEncode(urltik)
 				.. "; expires=" .. os.date("!%a, %d %b %Y %H:%M:%S %Z", os.time() + 60 * 60 * 24 * 7)
-				.. "; domain=" .. (realHost and realHost:match("^([^:]+)") or dbotPortalHost)
-				.. "; port=" .. dbotPortalPort
+				.. "; domain=" .. (cdomain or dbotPortalHost)
+				.. "; port=" .. ((cport ~= "" and cport) or dbotPortalPort)
 				.. "; path=" .. dbotPortalPrefixVUrl .. "t/; HttpOnly"
 			-- Not doing this redirect becuase webkit doesn't keep the cookie.
 			-- user.responseStatusCode = "307"
