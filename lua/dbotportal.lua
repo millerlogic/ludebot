@@ -10,7 +10,7 @@ require("html")
 
 
 if not dbotPortal then
-	dbotPortalHost = "127.0.0.1"
+	dbotPortalHost = "localhost"
 	dbotPortalPort = 8000 -- Note: httpGet can request from the same host.
 	dbotPortalRoot = "./lua/portal"
 	dbotPortalPrefixVUrl = "/" -- Must end in slash.
