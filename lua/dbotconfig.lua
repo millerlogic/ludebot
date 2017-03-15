@@ -74,6 +74,26 @@ end)
 dbotBgTimer:start()
 
 
+function _checkNewSpecialUdf(moduleName, funcName)
+	if moduleName == 'etc' and funcName == 'on_cmd' then
+		-- Didn't find on_cmd, so make one.
+		local finfo, err = _doAcctSaveUdf(_getFakeAdmin(), moduleName, funcName, [[
+return (function(name, ...)
+  local fn = etc[name]
+  if type(fn) == "function" then
+    return fn(...)
+   end
+end)(...)
+]])
+		if not finfo then
+			return nil, err
+		end
+		finfo.secure = true
+		return finfo
+	end
+end
+
+
 function getUdfInfo(moduleName, funcName, checkmirror)
 	local udf = dbotData["udf"]
 	if udf then
@@ -84,19 +104,23 @@ function getUdfInfo(moduleName, funcName, checkmirror)
 				return finfo
 			end
 		end
-		if checkmirror ~= false then
-			local modinfo = getUserCodeModuleInfo(moduleName)
-			if modinfo and modinfo.mirror then
-				finfo = getUdfInfo(modinfo.mirror, funcName, false)
-				if finfo then
-					local xfinfo = { }
-					for k, v in pairs(finfo) do
-						xfinfo[k] = v
-					end
-					xfinfo.id = "id_mirror_code"
-					xfinfo.mcode = "return " .. modinfo.mirror .. "." .. funcName .. "(...)\n"
-					return xfinfo
+	end
+	local finfo = _checkNewSpecialUdf(moduleName, funcName)
+	if finfo then
+		return finfo
+	end
+	if checkmirror ~= false then
+		local modinfo = getUserCodeModuleInfo(moduleName)
+		if modinfo and modinfo.mirror then
+			finfo = getUdfInfo(modinfo.mirror, funcName, false)
+			if finfo then
+				local xfinfo = { }
+				for k, v in pairs(finfo) do
+					xfinfo[k] = v
 				end
+				xfinfo.id = "id_mirror_code"
+				xfinfo.mcode = "return " .. modinfo.mirror .. "." .. funcName .. "(...)\n"
+				return xfinfo
 			end
 		end
 	end
@@ -263,6 +287,20 @@ function accountCanSaveUdf(acct, moduleName, funcName, checkmirror)
 	return true
 end
 
+-- Does no checks.
+function _doAcctSaveUdf(acct, moduleName, funcName, funcCode)
+	local xfi, err = saveUdf(moduleName, funcName, funcCode)
+	if not xfi then
+		return nil, err
+	end
+	finfo = xfi
+	finfo.faddr = acct:fulladdress()
+	finfo.acctID = acct.id
+	finfo.chacctID = nil -- Clear on save.
+	finfo.secure = nil -- Clear on save; need to re-confirm secure-ness.
+	return finfo
+end
+
 -- Validates access to save this function for the specified user account,
 -- and fills in extra user info in the finfo object.
 -- Does NOT validate correct module name or function name.
@@ -288,16 +326,7 @@ function accountSaveUdf(acct, moduleName, funcName, funcCode, isNew)
 			return nil, "Function already exists"
 		end
 	end
-	local xfi, err = saveUdf(moduleName, funcName, funcCode)
-	if not xfi then
-		return nil, err
-	end
-	finfo = xfi
-	finfo.faddr = acct:fulladdress()
-	finfo.acctID = acct.id
-	finfo.chacctID = nil -- Clear on save.
-	finfo.secure = nil -- Clear on save; need to re-confirm secure-ness.
-	return finfo
+	return _doAcctSaveUdf(acct, moduleName, funcName, funcCode)
 end
 
 
@@ -384,6 +413,17 @@ function adminGetUserAccount(who)
 end
 
 
+function _makeAccount(fulladdress, acctID)
+	local acct = {}
+	acct.id = acctID
+	acct.creat = os.time()
+	acct.last = acct.creat
+	acct.faddr = fulladdress
+	setmetatable(acct, accountMT)
+	return acct
+end
+
+
 -- Get account for the user, only if allowed via fulladdress.
 -- If demand is true, an account will be created.
 -- Returns (acct,msg) on success.
@@ -409,14 +449,8 @@ function getUserAccount(fulladdress, demand)
 		else
 			if demand then
 				local nextacctnum = (dbotData.nextacctnum or 1)
-				local acct = {}
-				acct.id = nextacctnum
-				acct.creat = os.time()
-				acct.last = acct.creat
-				acct.faddr = fulladdress
-				-- acct.mask = nick .. '!' .. ident .. '@' .. addr
+				local acct = _makeAccount(fulladdress, nextacctnum)
 				dbotData.login[nick:lower()] = acct
-				setmetatable(acct, accountMT)
 				dbotData.nextacctnum = nextacctnum + 1
 				dbotDirty = true
 				return acct, "Account created"
@@ -434,12 +468,15 @@ function getGuestAccount(nick, ident, addr)
 	local acct = adminGetUserAccount(guestnick)
 	local x = (nick or guestnick) .. '!' .. (ident or "guest") .. '@' .. (addr or "guest.")
 	if not acct then
-		acct = assert(getUserAccount(guestnick .. "!guest@guest.", true))
+		acct = assert(getUserAccount(x, true))
 	end
 	acct.id = 28292717 -- "guest" in base 36
 	return acct
 end
 
+function _getFakeAdmin()
+	return _makeAccount("$admin!admin@admin.", 1)
+end
 
 -- Only looks it up, does not update the account in any way.
 -- Returns account, main_nick
