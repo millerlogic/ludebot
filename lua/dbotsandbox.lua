@@ -382,7 +382,7 @@ end
 -- Note: the code should load a security context (e.g. run an etc function) ASAP,
 -- otherwise the code is considered trusted and secure (allCodeTrusted, allCodeSecure).
 function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPrints, noerror)
-	local nick = nickFromSource(sender)
+	local nick, ident, host = sourceParts(sender)
 	local chan = client:channelNameFromTarget(target) -- could be nil!
 	local coro
 	local envprint
@@ -1154,6 +1154,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	end
 	hlp.nick = "User's nickname"
 	env.nick = nick
+	hlp.ident = [[The "user" (ident) of the sender's full address]]
+	env.ident = ident
 	hlp.account = "User's account number, or nil if not authenticated"
 	env.account = nickaccount
 	hlp.chan = "The current channel, or nil if none"
@@ -1319,6 +1321,8 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return h.msg, h.who, h.time
 	end
+	-- local isTelegram = client:network() == "Telegram"
+	local isTelegram = client.isTelegram
 	local notices = nil -- Can only send 1 notice per user.
 	hlp.sendNotice = "Send an IRC notice message to a nick/channel. Limitations apply."
 	env.sendNotice = function(to, msg)
@@ -1327,6 +1331,12 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		assert(msg)
 		if notices and notices[to:lower()] then
 			return
+		end
+		if isTelegram then
+			if to:lower() ~= nick:lower() then
+				return false, "Cannot send notice to " .. to .. " (not implemented yet)"
+			end
+			to = ident
 		end
 		if to:lower() == dest:lower() then
 			client:sendNotice(to, safeString(msg))
@@ -1360,8 +1370,6 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.var = function(name, value)
 	end
 	--]]
-	-- local isTelegram = client:network() == "Telegram"
-	local isTelegram = client.isTelegram
 	local nprintlines = 0
 	local maxprintlines = tonumber(maxPrints) or (isTelegram and 15 or 4)
 	local maxLineLength = isTelegram and 2000 or 400
