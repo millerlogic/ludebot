@@ -1332,20 +1332,24 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		if notices and notices[to:lower()] then
 			return
 		end
+		local checkSeen = true -- for now
 		if isTelegram then
 			if to:lower() ~= nick:lower() then
 				return false, "Cannot send notice to " .. to .. " (not implemented yet)"
 			end
 			to = ident
+			checkSeen = false
 		end
 		if to:lower() == dest:lower() then
 			client:sendNotice(to, safeString(msg))
 		elseif chan then
-			local so = findSeen(client:network(), chan, to)
-			if (not so or (os.time() - so.t) > 300) and to:lower() ~= nick:lower() then
-				-- print("env.sendNotice", so, os.time(), so.t, (os.time() - so.t), to, nick)
-				-- error("Cannot send notice to inactive user " .. to, 0)
-				return false, "Cannot send notice to inactive " .. to
+			if checkSeen then
+				local so = findSeen(client:network(), chan, to)
+				if (not so or (os.time() - so.t) > 300) and to:lower() ~= nick:lower() then
+					-- print("env.sendNotice", so, os.time(), so.t, (os.time() - so.t), to, nick)
+					-- error("Cannot send notice to inactive user " .. to, 0)
+					return false, "Cannot send notice to inactive " .. to
+				end
 			end
 			client:sendNotice(to, "[" .. chan .. "] " .. safeString(msg))
 		else
