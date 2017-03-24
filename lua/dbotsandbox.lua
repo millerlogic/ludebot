@@ -804,7 +804,9 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			end
 		end
 	end
-
+	
+	local isTelegram = client.isTelegram
+	
 	--if acct then
 	--	env.Cache = getUserCache(nick, true)
 	--else
@@ -820,10 +822,17 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		local modname = modinfo.name
 		env[modname] = m
 		hlp[modname] = "Module " .. modname .. " - " .. (modinfo.desc or 'Information not available')
-		if modname == "etc" or modinfo.mirror == "etc" then
-			m.cmdchar = "'"
+		if isTelegram then
+			if modname == "etc" or modinfo.mirror == "etc" then
+				m.cmdchar = "/"
+			end
+			m.cmdprefix = m.cmdchar or ("/" .. modname .. ".")
+		else
+			if modname == "etc" or modinfo.mirror == "etc" then
+				m.cmdchar = "'"
+			end
+			m.cmdprefix = m.cmdchar or ("'" .. modname .. ".")
 		end
-		m.cmdprefix = m.cmdchar or ("'" .. modname .. ".")
 		m.findFunc = function(pat, want, orig)
 			-- assert(type(pat) == "string", "Pattern string expected")
 			pat = pat or '.*'
@@ -1321,8 +1330,6 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 		end
 		return h.msg, h.who, h.time
 	end
-	-- local isTelegram = client:network() == "Telegram"
-	local isTelegram = client.isTelegram
 	local notices = nil -- Can only send 1 notice per user.
 	hlp.sendNotice = "Send an IRC notice message to a nick/channel. Limitations apply."
 	env.sendNotice = function(to, msg)

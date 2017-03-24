@@ -916,8 +916,9 @@ end
 function dbotHandleUserFunc(state, client, sender, target, msg)
 	local chan = client:channelNameFromTarget(target)
 	local nick = nickFromSource(sender)
-	local etcprefix, etcname, etcargs = msg:match("^('[']?)([a-zA-Z_0-9%.]+)[ ]?(.-)%s*$")
-	-- local etcprefix, etcname, etcargs = msg:match("^('[']?)([^ ]+)[ ]?(.*)$")
+	local isTelegram = client.isTelegram
+	local cmdr = isTelegram and "[/']" or "[']"
+	local etcprefix, etcname, etcargs = msg:match("^(" .. cmdr .. cmdr .. "?)([a-zA-Z_0-9%.]+)[ ]?(.-)%s*$")
 	if etcname then
 		if etcargs:len() > 0 then
 			-- args = "[[" .. args .. "]]"
@@ -927,7 +928,7 @@ function dbotHandleUserFunc(state, client, sender, target, msg)
 		if etcargs:len() > 0 then
 			xetcargs = "," .. etcargs
 		end
-		if etcprefix == "''" then
+		if etcprefix == "''" or etcprefix == "//" then
 			-- client:sendMsg(chan, dbotPortalURL .. "view?module=etc&name=" .. etcname)
 			--[[
 			dbot_run(state, client, sender, target, cmdchar .. "run",
