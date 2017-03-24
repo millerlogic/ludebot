@@ -918,26 +918,32 @@ function dbotHandleUserFunc(state, client, sender, target, msg)
 	local nick = nickFromSource(sender)
 	local isTelegram = client.isTelegram
 	local cmdr = isTelegram and "[/']" or "[']"
-	local etcprefix, etcname, etcargs = msg:match("^(" .. cmdr .. cmdr .. "?)([a-zA-Z_0-9%.]+)[ ]?(.-)%s*$")
+	local etcprefix, etcname, etcargs = msg:match("^(" .. cmdr .. cmdr .. "?)([a-zA-Z_0-9%.@]+)[ ]?(.-)%s*$")
 	if etcname then
-		if etcargs:len() > 0 then
-			-- args = "[[" .. args .. "]]"
-			etcargs = string.format("%q", etcargs)
-		end
-		local xetcargs = ""
-		if etcargs:len() > 0 then
-			xetcargs = "," .. etcargs
-		end
-		if etcprefix == "''" or etcprefix == "//" then
-			-- client:sendMsg(chan, dbotPortalURL .. "view?module=etc&name=" .. etcname)
-			--[[
-			dbot_run(state, client, sender, target, cmdchar .. "run",
-				"if not etc['" .. etcname .. "'] then print('etc." .. etcname .. " does not exist'); return end;"
-				.. " print('" .. dbotPortalURL .. "view?module=etc&name=" .. etcname .. "')")
-			--]]
-			dbot_run(state, client, sender, target, cmdchar .. "run", "singleprint(etc.on_src('" .. etcname .. "'" .. xetcargs .. "))")
-		else
-			dbot_run(state, client, sender, target, cmdchar .. "run", "singleprint(etc.on_cmd('" .. etcname .. "'" .. xetcargs .. "))")
+		local iat = etcname:find("@", 1, true)
+		if not iat or etcname:sub(iat + 1):lower() == client:nick():lower() then
+			if iat then
+				etcname = etcname:sub(1, iat - 1)
+			end
+			if etcargs:len() > 0 then
+				-- args = "[[" .. args .. "]]"
+				etcargs = string.format("%q", etcargs)
+			end
+			local xetcargs = ""
+			if etcargs:len() > 0 then
+				xetcargs = "," .. etcargs
+			end
+			if etcprefix == "''" or etcprefix == "//" then
+				-- client:sendMsg(chan, dbotPortalURL .. "view?module=etc&name=" .. etcname)
+				--[[
+				dbot_run(state, client, sender, target, cmdchar .. "run",
+					"if not etc['" .. etcname .. "'] then print('etc." .. etcname .. " does not exist'); return end;"
+					.. " print('" .. dbotPortalURL .. "view?module=etc&name=" .. etcname .. "')")
+				--]]
+				dbot_run(state, client, sender, target, cmdchar .. "run", "singleprint(etc.on_src('" .. etcname .. "'" .. xetcargs .. "))")
+			else
+				dbot_run(state, client, sender, target, cmdchar .. "run", "singleprint(etc.on_cmd('" .. etcname .. "'" .. xetcargs .. "))")
+			end
 		end
 	end
 end
