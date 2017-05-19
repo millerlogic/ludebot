@@ -342,9 +342,8 @@ function getDbotUserPubChrootFSO(user, dirUnderPub, demandUser)
 end
 
 
-dbotMemLimit = 1024 * 1024 * 4
--- dbotCpuLimit = 500000
-dbotCpuLimit = 2000000
+dbotMemLimit = 1024 * 1024 * 8
+dbotCpuLimit = 5000000
 
 
 function cash(who)
@@ -1675,6 +1674,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	--]]
 	hlp.httpPost = "Same as httpGet but using POST method"
 	env.httpPost = function(url, body, callback)
+		--[[ Allow POST:
 		if not acct or not acct:demand("post") then
 			if callback then
 				callback(nil, "Permission denied", "")
@@ -1682,6 +1682,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			end
 			return nil, "Permission denied"
 		end
+		--]]
 		if body and type(body) ~= "string" then
 			error("httpPost body must be a string", 0)
 		end
@@ -1736,9 +1737,11 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 			method = method:upper()
 			if method == "GET" then
 			elseif method == "POST" then
+				--[[ Allow POST:
 				if not acct or not acct:demand("post") then
 					return false, "Permission denied (HTTP method)"
 				end
+				--]]
 			else
 				if not acct or not acct:demand("HTTP_" .. method) then
 					return false, "Permission denied (HTTP method)"
