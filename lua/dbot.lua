@@ -125,7 +125,7 @@ function cmd_ticket(state, client, sender, target, cmd, args)
 		t = t .. "!"
 		local senderlen = sender:len()
 		for i = 1, internal.frandom(6, 12 + 1) do
-			local rn = internal.frandom(0, tcharslen) + 1
+			local rn = math.random(tcharslen)
 			t = t .. tchars:sub(rn, rn)
 			if i < senderlen then
 				for j = 0, (string.byte(sender:sub(i, i)) / 3) do
@@ -253,15 +253,52 @@ botExpectChannelBotCommand(cmdchar .. "ucashsymbol", function(state, client, sen
 			-- client:sendMsg(chan, table.concat({ getExchangeInfo(nick) }, ""))
 		end
 	else
-		client:sendMsg(chan, nick .. " * access denied")
+		client:sendNotice(nick, " * access denied")
 	end
+end)
+
+
+-- note: PM
+botExpectPMBotCommand(cmdchar .. "useralias", function(state, client, sender, target, cmd, args)
+	local nick = nickFromSource(sender)
+	local acct = getUserAccount(sender)
+	if acct and acct.id == 1 then
+		local xnew, xold, xtra = args:match("([^ ]+) ([^ ]+) ?(.*)")
+		if not xold then
+			client:sendNotice(nick, "Expected: NEW!ident@host OLD!ident@host [-remove]")
+		else
+			local useraliases = dbotData.useraliases
+			if not useraliases then
+				useraliases = {}
+				dbotData.useraliases = useraliases
+			end
+			if xtra == "-remove" then
+				useraliases[xold:lower()] = nil
+				useraliases["@" .. nickFromSource(xnew):lower()] = nil
+			else
+				useraliases[xold:lower()] = xnew
+				useraliases["@" .. nickFromSource(xnew):lower()] = nickFromSource(xold)
+			end
+			dbotDirty = true
+			client:sendNotice(nick, "done")
+			dbotAliases = useraliases
+		end
+	else
+		client:sendNotice(nick, " * access denied")
+	end
+end)
+
+
+-- note: PM
+botExpectPMBotCommand(cmdchar .. "userinfo", function(state, client, sender, target, cmd, args)
+	local nick = nickFromSource(sender)
+	client:sendNotice(nick, sender)
 end)
 
 
 -- note: PM
 botExpectPMBotCommand(cmdchar .. "allow", function(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
-	local chan = client:channelNameFromTarget(target)
 	local acct = getUserAccount(sender)
 	if acct and acct.id == 1 then
 		local who, whoident, whoaddr = sourceParts(args)
@@ -281,7 +318,7 @@ botExpectPMBotCommand(cmdchar .. "allow", function(state, client, sender, target
 			end
 		end
 	else
-		client:sendMsg(chan, nick .. " * access denied")
+		client:sendMsg(nick, " * access denied")
 	end
 end)
 
@@ -1256,8 +1293,42 @@ function dbotSeenLeave(client, prefix, cmd, params)
 end
 
 
+-- dbotAliases = dbotAliases
+
+function aliases_onCommand(self, prefix, cmd, args, ...)
+	local lprefix = (prefix or ""):lower()
+	if dbotAliases and dbotAliases[lprefix] then
+		prefix = dbotAliases[lprefix]
+	end
+	return self._onCommand_afterAliases(self, prefix, cmd, args, ...)
+end
+
+function aliases_sendMsg(self, to, msg, ...)
+	local pnick = "@" .. (to or ""):lower()
+	if dbotAliases and dbotAliases[pnick] then
+		to = dbotAliases[pnick]
+	end
+	return self._sendMsg_afterAliases(self, to, msg, ...)
+end
+
+function aliases_sendNotice(self, to, msg, ...)
+	local pnick = "@" .. (to or ""):lower()
+	if dbotAliases and dbotAliases[pnick] then
+		to = dbotAliases[pnick]
+	end
+	return self._sendNotice_afterAliases(self, to, msg, ...)
+end
+
 -- Note: this is also called on reload.
 function dbotSetupClient(client)
+	-- dbotAliases:
+	client._onCommand_afterAliases = client.onCommand
+	client.onCommand = aliases_onCommand
+	client._sendMsg_afterAliases = client.sendMsg
+	client.sendMsg = aliases_sendMsg
+	client._sendNotice_afterAliases = client.sendNotice
+	client.sendNotice = aliases_sendNotice
+
 	-- Capabilities: http://ircv3.atheme.org/specification/capability-negotiation-3.1
 	client:sendLine("CAP REQ :extended-join account-notify")
 	client:sendLine("CAP END")
