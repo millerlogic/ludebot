@@ -3111,7 +3111,7 @@ armleghelp.sectors = "Get a list of the stock sectors"
 botExpectChannelBotCommand("$sectors", function(state, client, sender, target, cmd, args)
 	local nick = nickFromSource(sender)
 	local chan = client:channelNameFromTarget(target)
-	local dest = chan or nick
+	local dest = chan or target
 	local str = table.concat(stockSectors, ", ")
 	client:sendMsg(dest, str)
 end)

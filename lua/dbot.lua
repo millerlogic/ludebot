@@ -858,7 +858,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 	local msg = params[2]
 	local chan = client:channelNameFromTarget(target)
 	local nick = nickFromSource(prefix)
-	local dest = chan or nick
+	local dest = chan or target
 	
 	local logmsg = msg
 	local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")

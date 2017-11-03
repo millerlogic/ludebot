@@ -387,7 +387,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	local coro
 	local envprint
 	local errprint
-	local dest = chan or nick
+	local dest = chan or target
 	local safeenv = {}
 	local protectnames = {
 		"tostring","tonumber","assert","error","pairs",
@@ -1169,7 +1169,7 @@ function dbotRunSandboxHooked(client, sender, target, code, finishEnvFunc, maxPr
 	env.account = nickaccount
 	hlp.chan = "The current channel, or nil if none"
 	env.chan = chan
-	hlp.dest = "Set to chan if not nil, otherwise set to nick"
+	hlp.dest = "Set to chan if not nil, otherwise set to nick or target"
 	env.dest = dest
 	hlp.network = "Name of the current network"
 	env.network = client:network()
