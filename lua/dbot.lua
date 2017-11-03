@@ -895,7 +895,7 @@ function dbotSeenPrivmsg(client, prefix, cmd, params)
 	local msg = params[2]
 	local chan = client:channelNameFromTarget(target)
 	local nick = nickFromSource(prefix)
-	local dest = chan or nick
+	local dest = chan or target
 	
 	local logmsg = msg
 	local ctcp, ctcpText = msg:match("^\001([^ \001]+)[ ]?([^\001]*)\001$")
@@ -1092,66 +1092,71 @@ end)
 
 function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 	local botnamelen = botname:len()
-	if msg:sub(botnamelen + 2, botnamelen + 2) == ' ' then
+	local chatmsg
+	if msg:sub(1, 1) == '@' and msg:sub(botnamelen + 2, botnamelen + 2) == ' ' then
+		if msg:sub(2, 1 + botnamelen):lower() == botname:lower() then
+			chatmsg = msg:sub(botnamelen + 3)
+		end
+	elseif msg:sub(botnamelen + 2, botnamelen + 2) == ' ' then
 		local ch = msg:sub(botnamelen + 1, botnamelen + 1)
 		if ch == ':' or ch == ',' or ch == ';' then
 			if msg:sub(1, botnamelen):lower() == botname:lower() then
-				local chatmsg = msg:sub(botnamelen + 3)
-				local cbtarget = target
-				if isdefault ~= true then
-					cbtarget = botname:lower() .. "~" .. target
-				end
-				do
-					if chatbotHookValid and chatbotHookValid() then
-						return false ~= chatbotHook(cbtarget, nick, chatmsg, function(target2, when, whospeak, msg)
-							if isdefault then
-								client:sendMsg(target, nick .. ch .. " " .. msg)
-							else
-								client:sendMsg(target, "<" .. botname .. "> " .. nick .. ch .. " " .. msg)
-							end
-						end, botname)
-					else
-						dbot_run(state, client, sender, target, cmdchar .. "run",
-							[====[
-								local choices = {
-									function()
-										return "I'm powered down right now lol"
-									end,
-									function()
-										return "u u u... *cough*"
-									end,
-									function()
-										return "sry I feel a little sick right now"
-									end,
-									function()
-										return "I'm disabled"
-									end,
-									function(x)
-					if etc and etc.er then
-						return etc.er(x)
-					else
-						return "omg, " .. x
-					end
-									end,
-									function()
-					if etc and etc.rdef then
-						return "ok, but isn't this interesting? " .. etc.rdef()
-					else
-						return "ok"
-					end
-									end,
-								}
-								local ch = [===[]====] .. ch .. [====[]===]
-								local chatmsg = [===[]====] .. chatmsg .. [====[]===]
-								local msg = pickone(choices)(chatmsg)
-								print(nick .. ch .. " " .. msg);
-							]====]);
-					end
-				end
-				return true
+				chatmsg = msg:sub(botnamelen + 3)
 			end
 		end
 	end
+	if chatmsg and chatmsg ~= "" then
+	local cbtarget = target
+		if isdefault ~= true then
+			cbtarget = botname:lower() .. "~" .. target
+		end
+		if chatbotHookValid and chatbotHookValid() then
+			return false ~= chatbotHook(cbtarget, nick, chatmsg, function(target2, when, whospeak, msg)
+				if isdefault then
+					client:sendMsg(target, nick .. ch .. " " .. msg)
+				else
+					client:sendMsg(target, "<" .. botname .. "> " .. nick .. ch .. " " .. msg)
+				end
+			end, botname)
+		else
+			dbot_run(state, client, sender, target, cmdchar .. "run",
+				[====[
+					local choices = {
+						function()
+							return "I'm powered down right now lol"
+						end,
+						function()
+							return "u u u... *cough*"
+						end,
+						function()
+							return "sry I feel a little sick right now"
+						end,
+						function()
+							return "I'm disabled"
+						end,
+						function(x)
+		if etc and etc.er then
+			return etc.er(x)
+		else
+			return "omg, " .. x
+		end
+						end,
+						function()
+		if etc and etc.rdef then
+			return "ok, but isn't this interesting? " .. etc.rdef()
+		else
+			return "ok"
+		end
+						end,
+					}
+					local ch = [===[]====] .. ch .. [====[]===]
+					local chatmsg = [===[]====] .. chatmsg .. [====[]===]
+					local msg = pickone(choices)(chatmsg)
+					print(nick .. ch .. " " .. msg);
+				]====]);
+		end
+	end
+	return true
 end
 
 
