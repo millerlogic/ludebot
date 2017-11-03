@@ -1093,16 +1093,18 @@ end)
 function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 	local botnamelen = botname:len()
 	local chatmsg
-	local ch = ':'
+	local rprefix = ""
 	if msg:sub(1, 1) == '@' and msg:sub(botnamelen + 2, botnamelen + 2) == ' ' then
 		if msg:sub(2, 1 + botnamelen):lower() == botname:lower() then
 			chatmsg = msg:sub(botnamelen + 3)
+			rprefix = "@" .. nick
 		end
 	elseif msg:sub(botnamelen + 2, botnamelen + 2) == ' ' then
-		ch = msg:sub(botnamelen + 1, botnamelen + 1)
+		local ch = msg:sub(botnamelen + 1, botnamelen + 1)
 		if ch == ':' or ch == ',' or ch == ';' then
 			if msg:sub(1, botnamelen):lower() == botname:lower() then
 				chatmsg = msg:sub(botnamelen + 3)
+				rprefix = nick .. ch
 			end
 		end
 	end
@@ -1114,9 +1116,9 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 		if chatbotHookValid and chatbotHookValid() then
 			return false ~= chatbotHook(cbtarget, nick, chatmsg, function(target2, when, whospeak, msg)
 				if isdefault then
-					client:sendMsg(target, nick .. ch .. " " .. msg)
+					client:sendMsg(target, rprefix .. " " .. msg)
 				else
-					client:sendMsg(target, "<" .. botname .. "> " .. nick .. ch .. " " .. msg)
+					client:sendMsg(target, "<" .. botname .. "> " .. rprefix .. " " .. msg)
 				end
 			end, botname)
 		else
