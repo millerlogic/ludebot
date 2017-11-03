@@ -1106,7 +1106,7 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 		end
 	end
 	if chatmsg and chatmsg ~= "" then
-	local cbtarget = target
+		local cbtarget = target
 		if isdefault ~= true then
 			cbtarget = botname:lower() .. "~" .. target
 		end
@@ -1135,18 +1135,18 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 							return "I'm disabled"
 						end,
 						function(x)
-		if etc and etc.er then
-			return etc.er(x)
-		else
-			return "omg, " .. x
-		end
+							if etc and etc.er then
+								return etc.er(x)
+							else
+								return "omg, " .. x
+							end
 						end,
 						function()
-		if etc and etc.rdef then
-			return "ok, but isn't this interesting? " .. etc.rdef()
-		else
-			return "ok"
-		end
+							if etc and etc.rdef then
+								return "ok, but isn't this interesting? " .. etc.rdef()
+							else
+								return "ok"
+							end
 						end,
 					}
 					local ch = [===[]====] .. ch .. [====[]===]
@@ -1154,9 +1154,9 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 					local msg = pickone(choices)(chatmsg)
 					print(nick .. ch .. " " .. msg);
 				]====]);
+			return true
 		end
 	end
-	return true
 end
 
 
