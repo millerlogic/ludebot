@@ -1152,10 +1152,10 @@ function doChatbot(botname, nick, target, client, sender, msg, isdefault)
 							end
 						end,
 					}
-					local ch = [===[]====] .. ch .. [====[]===]
 					local chatmsg = [===[]====] .. chatmsg .. [====[]===]
+					local rprefix = [===[]====] .. rprefix .. [====[]===]
 					local msg = pickone(choices)(chatmsg)
-					print(nick .. ch .. " " .. msg);
+					print(rprefix .. " " .. msg);
 				]====]);
 			return true
 		end
